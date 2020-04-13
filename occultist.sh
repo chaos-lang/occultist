@@ -56,6 +56,79 @@ spinner() {
     done
 }
 
+install_spell() {
+    SPELL_NAME=$1
+    if [ -z $2 ]; then
+        BRANCH=master
+    else
+        BRANCH="v$2"
+    fi
+    printf "Installing spell: ${YELLOW}${SPELL_NAME} ${BRANCH}${NC}\n"
+
+    spinner &
+    SPINNER_PID=$!
+
+    RESPONSE=$(curl -s -w '%{http_code}' -X GET \
+        $API_BASE/spell/$SPELL_NAME \
+        -H 'cache-control: no-cache' \
+        -H 'content-type: application/json')
+
+    STATUS_CODE=$(echo $RESPONSE | tail -c 4)
+    RESPONSE=${RESPONSE::-3}
+    CLONE_FAIL=false
+    BUILD_FAIL=false
+
+    if [ $STATUS_CODE -eq 200 ]; then
+        {
+            SPELL_REPO=$(echo ${RESPONSE} | jq -r '.repo')
+
+            mkdir -p spells
+            cd spells/
+            if [ -d "$SPELL_NAME" ]; then rm -rf $SPELL_NAME; fi
+            git clone --depth=1 --branch $BRANCH $SPELL_REPO $SPELL_NAME || CLONE_FAIL=true
+            cd $SPELL_NAME
+            rm -rf .git/
+            make || BUILD_FAIL=true
+            cd ../..
+
+            if [ $CLONE_FAIL = false ] && [ $BUILD_FAIL = false]; then
+                cat $JSON_FILE | jq -r ".dependencies += {\"${SPELL_NAME}\": \"${BRANCH}\"}" > tmp && mv tmp $JSON_FILE
+            fi
+        } &> /dev/null
+
+        kill -9 $SPINNER_PID
+        wait $SPINNER_PID 2>/dev/null
+        printf "\b"
+
+        if [ $CLONE_FAIL = true ]; then
+            echo -e "${RED}Installation of ${YELLOW}${SPELL_NAME}${RED} is failed: Version ${YELLOW}${BRANCH}${RED} does not exists!${NC}"
+            exit 3
+        elif [ $BUILD_FAIL = true ]; then
+            echo -e "${RED}Installation of ${YELLOW}${SPELL_NAME}${RED} is failed: Build failure!${NC}"
+            exit 4
+        fi
+
+        echo -e "${GREEN}The spell ${YELLOW}${SPELL_NAME}${GREEN} is successfully installed!${NC}"
+        curl -s -o /dev/null -X GET \
+            $API_BASE/spell/install/$SPELL_NAME \
+            -H 'cache-control: no-cache' \
+            -H 'content-type: application/json'
+        exit 0
+    elif [ $STATUS_CODE -eq 404 ]; then
+        kill -9 $SPINNER_PID
+        wait $SPINNER_PID 2>/dev/null
+        printf "\b"
+        echo -e "${RED}Couldn't find ${YELLOW}${SPELL_NAME}${RED} in the spell index!${NC}"
+        exit 5
+    else
+        kill -9 $SPINNER_PID
+        wait $SPINNER_PID 2>/dev/null
+        printf "\b"
+        echo -e "${RED}Search for the spell is failed!${NC}"
+        exit 6
+    fi
+}
+
 # Register the spell
 if [ $1 = "register" ]; then
     SPELL_NAME=$(jq -r '.name' $JSON_FILE)
@@ -117,75 +190,6 @@ elif [ $1 = "install" ]; then
         echo "Install all\n"
     # Install and save a specific spell
     else
-        SPELL_NAME=$2
-        if [ -z $3 ]; then
-            BRANCH=master
-        else
-            BRANCH="v$3"
-        fi
-        printf "Installing spell: ${YELLOW}${SPELL_NAME} ${BRANCH}${NC}\n"
-
-        spinner &
-        SPINNER_PID=$!
-
-        RESPONSE=$(curl -s -w '%{http_code}' -X GET \
-            $API_BASE/spell/$SPELL_NAME \
-            -H 'cache-control: no-cache' \
-            -H 'content-type: application/json')
-
-        STATUS_CODE=$(echo $RESPONSE | tail -c 4)
-        RESPONSE=${RESPONSE::-3}
-        CLONE_FAIL=false
-        BUILD_FAIL=false
-
-        if [ $STATUS_CODE -eq 200 ]; then
-            {
-                SPELL_REPO=$(echo ${RESPONSE} | jq -r '.repo')
-
-                mkdir -p spells
-                cd spells/
-                if [ -d "$SPELL_NAME" ]; then rm -rf $SPELL_NAME; fi
-                git clone --depth=1 --branch $BRANCH $SPELL_REPO $SPELL_NAME || CLONE_FAIL=true
-                cd $SPELL_NAME
-                rm -rf .git/
-                make || BUILD_FAIL=true
-                cd ../..
-
-                if [ $CLONE_FAIL = false ] && [ $BUILD_FAIL = false]; then
-                    cat $JSON_FILE | jq -r ".dependencies += {\"${SPELL_NAME}\": \"${BRANCH}\"}" > tmp && mv tmp $JSON_FILE
-                fi
-            } &> /dev/null
-
-            kill -9 $SPINNER_PID
-            wait $SPINNER_PID 2>/dev/null
-            printf "\b"
-
-            if [ $CLONE_FAIL = true ]; then
-                echo -e "${RED}Installation of ${YELLOW}${SPELL_NAME}${RED} is failed: Version ${YELLOW}${BRANCH}${RED} does not exists!${NC}"
-                exit 3
-            elif [ $BUILD_FAIL = true ]; then
-                echo -e "${RED}Installation of ${YELLOW}${SPELL_NAME}${RED} is failed: Build failure!${NC}"
-                exit 4
-            fi
-
-            echo -e "${GREEN}The spell ${YELLOW}${SPELL_NAME}${GREEN} is successfully installed!${NC}"
-            curl -s -o /dev/null -X GET \
-                $API_BASE/spell/install/$SPELL_NAME \
-                -H 'cache-control: no-cache' \
-                -H 'content-type: application/json'
-            exit 0
-        elif [ $STATUS_CODE -eq 404 ]; then
-            kill -9 $SPINNER_PID
-            wait $SPINNER_PID 2>/dev/null
-            printf "\b"
-            echo -e "${RED}Couldn't find ${YELLOW}${SPELL_NAME}${RED} in the spell index!${NC}"
-            exit 5
-        else
-            kill -9 $SPINNER_PID
-            wait $SPINNER_PID 2>/dev/null
-            printf "\b"
-            echo -e "${RED}Search for the spell is failed!${NC}"
-            exit 6
-        fi
+        install_spell $2 $3
     fi
 fi
