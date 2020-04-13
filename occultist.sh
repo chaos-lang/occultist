@@ -2,7 +2,10 @@
 
 # The spell definition file
 JSON_FILE='occultist.json'
-API_BASE='https://occultist-io.now.sh/api'
+HOST='https://occultist-io.now.sh'
+API_BASE="$HOST/api"
+PROGRAM='Occultist'
+DESCRIPTION='Dependency manager for the Chaos language'
 
 # Terminal colors
 RED='\033[0;31m'
@@ -11,6 +14,7 @@ YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
 clear
+printf "${YELLOW}%s${NC} - %s - ${YELLOW}%s${NC}\n" "$PROGRAM" "$DESCRIPTION" "$HOST"
 # Occultist icon ANSI colors
 cat << "EOF"
 [38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m
@@ -58,11 +62,7 @@ spinner() {
 
 install_spell() {
     SPELL_NAME=$1
-    if [ -z $2 ]; then
-        BRANCH=master
-    else
-        BRANCH="v$2"
-    fi
+    BRANCH=$2
     printf "Installing spell: ${YELLOW}${SPELL_NAME} ${BRANCH}${NC}\n"
 
     spinner &
@@ -113,7 +113,6 @@ install_spell() {
             $API_BASE/spell/install/$SPELL_NAME \
             -H 'cache-control: no-cache' \
             -H 'content-type: application/json'
-        exit 0
     elif [ $STATUS_CODE -eq 404 ]; then
         kill -9 $SPINNER_PID
         wait $SPINNER_PID 2>/dev/null
@@ -187,9 +186,16 @@ elif [ $1 = "install" ]; then
 
     # Install all the dependencies
     if [ -z $2 ]; then
-        echo "Install all\n"
+        while IFS== read -r key value; do
+            install_spell $key $value
+        done < <(jq -r '.dependencies | to_entries | .[] | .key + "=" + .value ' $JSON_FILE)
     # Install and save a specific spell
     else
+        if [ -z $3 ]; then
+            BRANCH=master
+        else
+            BRANCH="v$3"
+        fi
         install_spell $2 $3
     fi
 fi
