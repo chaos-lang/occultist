@@ -2,6 +2,7 @@
 
 # The spell definition file
 JSON_FILE='occultist.json'
+API_BASE='https://occultist-io.now.sh/api'
 
 # Terminal colors
 RED='\033[0;31m'
@@ -77,7 +78,7 @@ if [ $1 = "register" ]; then
     SPINNER_PID=$!
 
     STATUS_CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
-        https://occultist-io.now.sh/api/spell/create \
+        $API_BASE/spell/create \
         -H 'cache-control: no-cache' \
         -H 'content-type: application/json' \
         -d "{
@@ -128,7 +129,7 @@ elif [ $1 = "install" ]; then
         SPINNER_PID=$!
 
         RESPONSE=$(curl -s -w '%{http_code}' -X GET \
-            https://occultist-io.now.sh/api/spell/$SPELL_NAME \
+            $API_BASE/spell/$SPELL_NAME \
             -H 'cache-control: no-cache' \
             -H 'content-type: application/json')
 
@@ -168,6 +169,10 @@ elif [ $1 = "install" ]; then
             fi
 
             echo -e "${GREEN}The spell ${YELLOW}${SPELL_NAME}${GREEN} is successfully installed!${NC}"
+            curl -s -o /dev/null -X GET \
+                $API_BASE/spell/install/$SPELL_NAME \
+                -H 'cache-control: no-cache' \
+                -H 'content-type: application/json'
             exit 0
         elif [ $STATUS_CODE -eq 404 ]; then
             kill -9 $SPINNER_PID
