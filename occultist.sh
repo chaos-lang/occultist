@@ -2,6 +2,7 @@
 
 # The spell definition file
 JSON_FILE='occultist.json'
+LOCK_FILE='occultist-lock.json'
 HOST='https://occultist-io.now.sh'
 API_BASE="$HOST/api"
 PROGRAM='Occultist'
@@ -67,6 +68,7 @@ install_spell() {
     else
         printf "Installing spell: ${YELLOW}${SPELL_NAME}${NC}:${YELLOW}${2}${NC}\n"
     fi
+    LOCK=$3
 
     spinner &
     SPINNER_PID=$!
@@ -118,7 +120,10 @@ install_spell() {
             cd ../..
 
             if [ $CLONE_FAIL = false ] && [ $BUILD_FAIL = false ]; then
-                cat $JSON_FILE | jq -r ".dependencies += {\"${SPELL_NAME}\": \"${BRANCH_ORIG}\"}" > tmp && mv tmp $JSON_FILE
+                if [ $LOCK = false ]; then
+                    cat $JSON_FILE | jq -r ".dependencies += {\"${SPELL_NAME}\": \"${BRANCH_ORIG}\"}" > tmp && mv tmp $JSON_FILE
+                fi
+                cat $LOCK_FILE | jq -r ".dependencies += {\"${SPELL_NAME}\": \"${BRANCH}\"}" > tmp && mv tmp $LOCK_FILE
             fi
         } &> /dev/null
 
@@ -210,13 +215,29 @@ elif [ $1 = "install" ]; then
         cat $JSON_FILE | jq -r '. += {"dependencies": {}}' > tmp && mv tmp $JSON_FILE
     fi
 
+    LOCK=true
+    if [ ! -f $LOCK_FILE ]; then
+        echo -e "{\n}" > $LOCK_FILE
+        LOCK=false
+    fi
+    if cat $LOCK_FILE | jq -e 'has("dependencies")' > /dev/null; then
+        :
+    else
+        cat $LOCK_FILE | jq -r '. += {"dependencies": {}}' > tmp && mv tmp $LOCK_FILE
+    fi
+
     # Install all the dependencies
     if [ -z $2 ]; then
+        if [ $LOCK = true ]; then
+            SUBJECT_FILE=$LOCK_FILE
+        else
+            SUBJECT_FILE=$JSON_FILE
+        fi
         while IFS== read -r key value; do
-            install_spell $key $value
-        done < <(jq -r '.dependencies | to_entries | .[] | .key + "=" + .value ' $JSON_FILE)
+            install_spell $key $value $LOCK
+        done < <(jq -r '.dependencies | to_entries | .[] | .key + "=" + .value ' $SUBJECT_FILE)
     # Install and save a specific spell
     else
-        install_spell $2 $3
+        install_spell $2 $3 false
     fi
 fi
