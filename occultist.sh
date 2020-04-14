@@ -13,6 +13,8 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
+BOLD_NC='\033[1m'
+UNDERLINED_NC='\033[4m'
 
 clear
 printf "${YELLOW}%s${NC} - %s - ${YELLOW}%s${NC}\n" "$PROGRAM" "$DESCRIPTION" "$HOST"
@@ -166,8 +168,66 @@ install_spell() {
     fi
 }
 
+# Create or edit occultist.json
+if [ $1 = "init" ]; then
+    if [ ! -f $JSON_FILE ]; then
+        echo -e "{\n}" > $JSON_FILE
+    fi
+    if cat $JSON_FILE | jq -e 'has("dependencies")' > /dev/null; then
+        :
+    else
+        cat $JSON_FILE | jq -r '. += {"dependencies": {}}' > tmp && mv tmp $JSON_FILE
+    fi
+
+    read -p "$(echo -e ${YELLOW}Spell name: ${NC}${BOLD_NC})" spell_name
+    read -p "$(echo -e ${YELLOW}Spell version: ${NC}${BOLD_NC})" spell_version
+    read -p "$(echo -e ${YELLOW}Spell description: ${NC}${BOLD_NC})" spell_description
+
+    echo -e "${UNDERLINED_NC}Select the spell type${NC}"
+    PS3="Pick an option: "
+    options=("module" "extension")
+    select opt in "${options[@]}"; do
+        case "$REPLY" in
+        1 ) spell_type=$opt; echo -e "${YELLOW}Spell type: ${NC}${BOLD_NC}${opt}${NC}"; break;;
+        2 ) spell_type=$opt; echo -e "${YELLOW}Spell type: ${NC}${BOLD_NC}${opt}${NC}"; break;;
+
+        *) echo "Invalid option. Try another one.";continue;;
+        esac
+    done
+
+    read -p "$(echo -e ${YELLOW}License: ${NC}${BOLD_NC})" license
+    read -p "$(echo -e ${YELLOW}Author name: ${NC}${BOLD_NC})" author_name
+    read -p "$(echo -e ${YELLOW}Author email: ${NC}${BOLD_NC})" author_email
+
+    echo -e "${UNDERLINED_NC}Select the author's role${NC}"
+    PS3="Pick an option: "
+    options=("maintainer" "developer")
+    select opt in "${options[@]}"; do
+        case "$REPLY" in
+        1 ) author_role=$opt; echo -e "${YELLOW}Author role: ${NC}${BOLD_NC}${opt}${NC}"; break;;
+        2 ) author_role=$opt; echo -e "${YELLOW}Author role: ${NC}${BOLD_NC}${opt}${NC}"; break;;
+
+        *) echo "Invalid option. Try another one.";continue;;
+        esac
+    done
+
+    cat $JSON_FILE | jq -r ". += {\"name\": \"${spell_name}\"}" > tmp && mv tmp $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"version\": \"${spell_version}\"}" > tmp && mv tmp $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"description\": \"${spell_description}\"}" > tmp && mv tmp $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"tags\": []}" > tmp && mv tmp $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"type\": \"${spell_type}\"}" > tmp && mv tmp $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"license\": \"${license}\"}" > tmp && mv tmp $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"authors\": []}" > tmp && mv tmp $JSON_FILE
+    cat $JSON_FILE | jq -r ".authors[0] += {\"name\": \"${author_name}\"}" > tmp && mv tmp $JSON_FILE
+    cat $JSON_FILE | jq -r ".authors[0] += {\"email\": \"${author_email}\"}" > tmp && mv tmp $JSON_FILE
+    cat $JSON_FILE | jq -r ".authors[0] += {\"role\": \"${author_role}\"}" > tmp && mv tmp $JSON_FILE
+
+    dependencies=$(jq -r '.dependencies' $JSON_FILE)
+    jq -M "del(.dependencies)" $JSON_FILE > tmp && mv tmp $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"dependencies\": ${dependencies}}" > tmp && mv tmp $JSON_FILE
+
 # Register the spell
-if [ $1 = "register" ]; then
+elif [ $1 = "register" ]; then
     SPELL_NAME=$(jq -r '.name' $JSON_FILE)
     SPELL_VERSION=$(jq -r '.version' $JSON_FILE)
     SPELL_DESCRIPTION=$(jq -r '.description' $JSON_FILE)
