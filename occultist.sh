@@ -62,7 +62,11 @@ spinner() {
 
 install_spell() {
     SPELL_NAME=$1
-    printf "Installing spell: ${YELLOW}${SPELL_NAME} ${BRANCH}${NC}\n"
+    if [ -z $2 ]; then
+        printf "Installing spell: ${YELLOW}${SPELL_NAME}${NC}\n"
+    else
+        printf "Installing spell: ${YELLOW}${SPELL_NAME}${NC}:${YELLOW}${2}${NC}\n"
+    fi
 
     spinner &
     SPINNER_PID=$!
@@ -87,11 +91,20 @@ install_spell() {
                     BRANCH=$(git remote show ${SPELL_REPO} | grep "HEAD branch" | cut -d ":" -f 2)
                     BRANCH="${BRANCH:1}"
                 fi
+                BRANCH_ORIG=$BRANCH
             else
-                if [[ $2 =~ ^[0-9]+(\.[0-9]+){2,3}$ ]]; then
+                if [[ $2 =~ ^[0-9x]+(\.[0-9x]+){0,3}$ ]]; then
+                    BRANCH_ORIG="$2"
                     BRANCH="v$2"
+                    BRANCH=$(echo ${BRANCH} | tr x \*)
+                    BRANCH=$(git ls-remote --tags --refs ${SPELL_REPO} | sed 's/.*\///' | grep ${BRANCH} | tail -n1)
+                    if [ -z $BRANCH ]; then
+                        BRANCH=$BRANCH_ORIG
+                        CLONE_FAIL=true
+                    fi
                 else
                     BRANCH="$2"
+                    BRANCH_ORIG=$BRANCH
                 fi
             fi
 
@@ -104,8 +117,8 @@ install_spell() {
             make || BUILD_FAIL=true
             cd ../..
 
-            if [ $CLONE_FAIL = false ] && [ $BUILD_FAIL = false]; then
-                cat $JSON_FILE | jq -r ".dependencies += {\"${SPELL_NAME}\": \"${BRANCH}\"}" > tmp && mv tmp $JSON_FILE
+            if [ $CLONE_FAIL = false ] && [ $BUILD_FAIL = false ]; then
+                cat $JSON_FILE | jq -r ".dependencies += {\"${SPELL_NAME}\": \"${BRANCH_ORIG}\"}" > tmp && mv tmp $JSON_FILE
             fi
         } &> /dev/null
 
