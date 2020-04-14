@@ -62,7 +62,6 @@ spinner() {
 
 install_spell() {
     SPELL_NAME=$1
-    BRANCH=$2
     printf "Installing spell: ${YELLOW}${SPELL_NAME} ${BRANCH}${NC}\n"
 
     spinner &
@@ -81,6 +80,20 @@ install_spell() {
     if [ $STATUS_CODE -eq 200 ]; then
         {
             SPELL_REPO=$(echo ${RESPONSE} | jq -r '.repo')
+
+            if [ -z $2 ]; then
+                BRANCH=$(git ls-remote --tags --refs ${SPELL_REPO} | tail -n1 | sed 's/.*\///')
+                if [ -z $BRANCH ]; then
+                    BRANCH=$(git remote show ${SPELL_REPO} | grep "HEAD branch" | cut -d ":" -f 2)
+                    BRANCH="${BRANCH:1}"
+                fi
+            else
+                if [[ $2 =~ ^[0-9]+(\.[0-9]+){2,3}$ ]]; then
+                    BRANCH="v$2"
+                else
+                    BRANCH="$2"
+                fi
+            fi
 
             mkdir -p spells
             cd spells/
@@ -104,11 +117,11 @@ install_spell() {
             echo -e "${RED}Installation of ${YELLOW}${SPELL_NAME}${RED} is failed: Version ${YELLOW}${BRANCH}${RED} does not exists!${NC}"
             exit 3
         elif [ $BUILD_FAIL = true ]; then
-            echo -e "${RED}Installation of ${YELLOW}${SPELL_NAME}${RED} is failed: Build failure!${NC}"
+            echo -e "${RED}Installation of ${YELLOW}${SPELL_NAME}${NC}:${YELLOW}${BRANCH}${RED} is failed: Build failure!${NC}"
             exit 4
         fi
 
-        echo -e "${GREEN}The spell ${YELLOW}${SPELL_NAME}${GREEN} is successfully installed!${NC}"
+        echo -e "${GREEN}The spell ${YELLOW}${SPELL_NAME}${NC}:${YELLOW}${BRANCH}${GREEN} is successfully installed!${NC}"
         curl -s -o /dev/null -X GET \
             $API_BASE/spell/install/$SPELL_NAME \
             -H 'cache-control: no-cache' \
@@ -191,11 +204,6 @@ elif [ $1 = "install" ]; then
         done < <(jq -r '.dependencies | to_entries | .[] | .key + "=" + .value ' $JSON_FILE)
     # Install and save a specific spell
     else
-        if [ -z $3 ]; then
-            BRANCH=master
-        else
-            BRANCH="v$3"
-        fi
         install_spell $2 $3
     fi
 fi
