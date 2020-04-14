@@ -275,6 +275,7 @@ elif [ $1 = "remove" ]; then
             cd spells/ && \
             rm -rf $SPELL_NAME && \
             cd .. && \
+            rmdir spells/ &> /dev/null
             jq -M "del(.dependencies.${SPELL_NAME})" $LOCK_FILE > tmp && mv tmp $LOCK_FILE && \
             jq -M "del(.dependencies.${SPELL_NAME})" $JSON_FILE > tmp && mv tmp $JSON_FILE && \
             echo -e "${GREEN}The spell ${YELLOW}${SPELL_NAME}${GREEN} is successfully removed!${NC}" || \
