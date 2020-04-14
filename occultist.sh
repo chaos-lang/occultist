@@ -125,7 +125,12 @@ install_spell() {
             git clone --depth=1 --branch $BRANCH $SPELL_REPO $SPELL_NAME || CLONE_FAIL=true
             cd $SPELL_NAME
             rm -rf .git/
-            make || BUILD_FAIL=true
+            spell_type=$(jq -r '.type' $JSON_FILE)
+            if [ $spell_type = "extension" ]; then
+                make || BUILD_FAIL=true
+            elif [ $spell_type = "module" ]; then
+                occultist install || BUILD_FAIL=true
+            fi
             cd ../..
 
             if [ $CLONE_FAIL = false ] && [ $BUILD_FAIL = false ]; then
@@ -144,6 +149,7 @@ install_spell() {
             echo -e "${RED}Installation of ${YELLOW}${SPELL_NAME}${RED} is failed: Version ${YELLOW}${BRANCH}${RED} does not exists!${NC}"
             exit 3
         elif [ $BUILD_FAIL = true ]; then
+            rm -rf spells/$SPELL_NAME
             echo -e "${RED}Installation of ${YELLOW}${SPELL_NAME}${NC}:${YELLOW}${BRANCH}${RED} is failed: Build failure!${NC}"
             exit 4
         fi
