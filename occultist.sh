@@ -7,6 +7,7 @@ HOST='https://occultist-io.now.sh'
 API_BASE="$HOST/api"
 PROGRAM='Occultist'
 DESCRIPTION='Dependency manager for the Chaos language'
+SPELLS_DIR_NAME='spells'
 
 # Terminal colors
 RED='\033[0;31m'
@@ -119,8 +120,8 @@ install_spell() {
                 fi
             fi
 
-            mkdir -p spells
-            cd spells/
+            mkdir -p $SPELLS_DIR_NAME
+            cd $SPELLS_DIR_NAME/
             if [ -d "$SPELL_NAME" ]; then rm -rf $SPELL_NAME; fi
             git clone --depth=1 --branch $BRANCH $SPELL_REPO $SPELL_NAME || CLONE_FAIL=true
             cd $SPELL_NAME
@@ -149,7 +150,7 @@ install_spell() {
             echo -e "${RED}Installation of ${YELLOW}${SPELL_NAME}${RED} is failed: Version ${YELLOW}${BRANCH}${RED} does not exists!${NC}"
             exit 3
         elif [ $BUILD_FAIL = true ]; then
-            rm -rf spells/$SPELL_NAME
+            rm -rf $SPELLS_DIR_NAME/$SPELL_NAME
             echo -e "${RED}Installation of ${YELLOW}${SPELL_NAME}${NC}:${YELLOW}${BRANCH}${RED} is failed: Build failure!${NC}"
             exit 4
         fi
@@ -175,7 +176,7 @@ install_spell() {
 }
 
 # Create or edit occultist.json
-if [ $1 = "init" ]; then
+if [ $1 = "init" ] || [ $1 = "edit" ] || [ $1 = "create" ]; then
     if [ ! -f $JSON_FILE ]; then
         echo -e "{\n}" > $JSON_FILE
     fi
@@ -338,10 +339,10 @@ elif [ $1 = "remove" ]; then
     else
         SPELL_NAME=$2
         if cat $JSON_FILE | jq -e ".dependencies | has(\"${SPELL_NAME}\")" > /dev/null; then
-            cd spells/ && \
+            cd $SPELLS_DIR_NAME/ && \
             rm -rf $SPELL_NAME && \
             cd .. && \
-            rmdir spells/ &> /dev/null
+            rmdir $SPELLS_DIR_NAME/ &> /dev/null
             jq -M "del(.dependencies.${SPELL_NAME})" $LOCK_FILE > tmp && mv tmp $LOCK_FILE && \
             jq -M "del(.dependencies.${SPELL_NAME})" $JSON_FILE > tmp && mv tmp $JSON_FILE && \
             echo -e "${GREEN}The spell ${YELLOW}${SPELL_NAME}${GREEN} is successfully removed!${NC}" || \
