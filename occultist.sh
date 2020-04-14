@@ -63,12 +63,19 @@ spinner() {
 
 install_spell() {
     SPELL_NAME=$1
-    if [ -z $2 ]; then
+    if [ -z $3 ]; then
+        VERSION=
+        LOCK=$2
+    else
+        VERSION=$2
+        LOCK=$3
+    fi
+
+    if [ -z $VERSION ]; then
         printf "Installing spell: ${YELLOW}${SPELL_NAME}${NC}\n"
     else
-        printf "Installing spell: ${YELLOW}${SPELL_NAME}${NC}:${YELLOW}${2}${NC}\n"
+        printf "Installing spell: ${YELLOW}${SPELL_NAME}${NC}:${YELLOW}${VERSION}${NC}\n"
     fi
-    LOCK=$3
 
     spinner &
     SPINNER_PID=$!
@@ -87,7 +94,7 @@ install_spell() {
         {
             SPELL_REPO=$(echo ${RESPONSE} | jq -r '.repo')
 
-            if [ -z $2 ]; then
+            if [ -z $VERSION ]; then
                 BRANCH=$(git ls-remote --tags --refs ${SPELL_REPO} | tail -n1 | sed 's/.*\///')
                 if [ -z $BRANCH ]; then
                     BRANCH=$(git remote show ${SPELL_REPO} | grep "HEAD branch" | cut -d ":" -f 2)
@@ -95,9 +102,9 @@ install_spell() {
                 fi
                 BRANCH_ORIG=$BRANCH
             else
-                if [[ $2 =~ ^[0-9x]+(\.[0-9x]+){0,3}$ ]]; then
-                    BRANCH_ORIG="$2"
-                    BRANCH="v$2"
+                if [[ $VERSION =~ ^[0-9x]+(\.[0-9x]+){0,3}$ ]]; then
+                    BRANCH_ORIG="$VERSION"
+                    BRANCH="v$VERSION"
                     BRANCH=$(echo ${BRANCH} | tr x \*)
                     BRANCH=$(git ls-remote --tags --refs ${SPELL_REPO} | sed 's/.*\///' | grep ${BRANCH} | tail -n1)
                     if [ -z $BRANCH ]; then
@@ -105,8 +112,8 @@ install_spell() {
                         CLONE_FAIL=true
                     fi
                 else
-                    BRANCH="$2"
-                    BRANCH_ORIG=$BRANCH
+                    BRANCH=$VERSION
+                    BRANCH_ORIG=$VERSION
                 fi
             fi
 
@@ -254,5 +261,27 @@ elif [ $1 = "upgrade" ]; then
         SPELL_NAME=$2
         BRANCH=$(jq -r ".dependencies.${SPELL_NAME}" $JSON_FILE)
         install_spell $SPELL_NAME $BRANCH $LOCK
+    fi
+
+# Remove a spell
+elif [ $1 = "remove" ]; then
+    LOCK=false
+    if [ -z $2 ]; then
+        echo -e "\n${RED}You have to specifiy a spell name!${NC}\n"
+        exit 7
+    else
+        SPELL_NAME=$2
+        if cat $JSON_FILE | jq -e ".dependencies | has(\"${SPELL_NAME}\")" > /dev/null; then
+            cd spells/ && \
+            rm -rf $SPELL_NAME && \
+            cd .. && \
+            jq -M "del(.dependencies.${SPELL_NAME})" $LOCK_FILE > tmp && mv tmp $LOCK_FILE && \
+            jq -M "del(.dependencies.${SPELL_NAME})" $JSON_FILE > tmp && mv tmp $JSON_FILE && \
+            echo -e "${GREEN}The spell ${YELLOW}${SPELL_NAME}${GREEN} is successfully removed!${NC}" || \
+            echo -e "\n${RED}Failed to remove spell ${YELLOW}${SPELL_NAME}${RED}!${NC}\n"
+        else
+            echo -e "\n${RED}Spell ${YELLOW}${SPELL_NAME}${RED} is already removed!${NC}\n"
+            exit 8
+        fi
     fi
 fi
