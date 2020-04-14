@@ -6,13 +6,18 @@ LOCK_FILE='occultist-lock.json'
 HOST='https://occultist-io.now.sh'
 API_BASE="$HOST/api"
 PROGRAM='Occultist'
-DESCRIPTION='Dependency manager for the Chaos language'
+LANGUAGE_NAME='the Chaos language'
+LANGUAGE_BINARY='chaos'
+LANGUAGE_REPO='https://github.com/chaos-lang/chaos.git'
+DESCRIPTION="Dependency manager for $LANGUAGE_NAME"
 SPELLS_DIR_NAME='spells'
+THIS_DIR=$(pwd)
 
 # Terminal colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
+BOLD_PURPLE='\033[1;35m'
 NC='\033[0m' # No Color
 BOLD_NC='\033[1m'
 UNDERLINED_NC='\033[4m'
@@ -64,6 +69,89 @@ spinner() {
     done
 }
 
+get_latest_tag_or_default_branch() {
+    local BRANCH=$(git ls-remote --tags --refs ${1} | tail -n1 | sed 's/.*\///')
+    if [ -z $BRANCH ]; then
+        local BRANCH=$(git remote show ${1} | grep "HEAD branch" | cut -d ":" -f 2)
+        local BRANCH="${BRANCH:1}"
+    fi
+    echo $BRANCH
+}
+
+install_language() {
+    if [ "$EUID" -ne 0 ]; then
+        echo -e "${RED}To install ${LANGUAGE_NAME} you need to run this command as root!${NC}"
+        exit 10
+    fi
+    if [ -z $1 ]; then
+        printf "Installing ${BOLD_PURPLE}${LANGUAGE_NAME}${NC} to the system\n"
+    else
+        VERSION=$1
+        VERSION_ORIG=$VERSION
+        if [[ $VERSION =~ ^[0-9x]+(\.[0-9x]+){0,3}$ ]]; then
+            VERSION="v$VERSION"
+            VERSION=$(echo ${VERSION} | tr x \*)
+            VERSION=$(git ls-remote --tags --refs ${LANGUAGE_REPO} | sed 's/.*\///' | grep ${VERSION} | tail -n1)
+            if [ -z $VERSION ]; then
+                echo -e "${RED}Installation is failed: ${BOLD_PURPLE}${LANGUAGE_NAME}${RED} version ${BOLD_PURPLE}${VERSION_ORIG}${RED} does not exists!${NC}"
+                exit 13
+            else
+                VERSION_ORIG=${VERSION:1}
+            fi
+            printf "Installing ${BOLD_PURPLE}${LANGUAGE_NAME}${NC} version ${BOLD_PURPLE}${VERSION_ORIG}${NC} to the system\n"
+        else
+            printf "Installing ${BOLD_PURPLE}${LANGUAGE_NAME}${NC} branch ${BOLD_PURPLE}${VERSION_ORIG}${NC} to the system\n"
+        fi
+    fi
+
+    spinner &
+    SPINNER_PID=$!
+
+    INSTALLATION_FAIL=false
+
+    {
+        if [ -z $VERSION ]; then
+            BRANCH=$(get_latest_tag_or_default_branch ${LANGUAGE_REPO})
+        else
+            BRANCH=$VERSION
+        fi
+        git clone --depth=1 --branch $BRANCH $LANGUAGE_REPO /tmp/$LANGUAGE_BINARY && \
+        cd /tmp/$LANGUAGE_BINARY/ && \
+        make requirements && \
+        make && \
+        make install || INSTALLATION_FAIL=true
+        cd $THIS_DIR
+        rm -rf /tmp/$LANGUAGE_BINARY/
+    } &> /dev/null
+
+    kill -9 $SPINNER_PID
+    wait $SPINNER_PID 2>/dev/null
+    printf "\b"
+
+    if [ $INSTALLATION_FAIL = true ]; then
+        echo -e "${RED}Installation is failed!${NC}"
+        exit 11
+    fi
+
+    echo -e "${GREEN}Installation is successful.${NC}"
+    return 0
+}
+
+uninstall_language() {
+    if [ "$EUID" -ne 0 ]; then
+        echo -e "${RED}To uninstall ${LANGUAGE_NAME} you need to run this command as root!${NC}"
+        exit 10
+    fi
+    UNINSTALLATION_FAIL=false
+    rm /usr/local/bin/$LANGUAGE_BINARY || UNINSTALLATION_FAIL=true
+    if [ $UNINSTALLATION_FAIL = true ]; then
+        echo -e "${RED}Uninstallation is failed!${NC}"
+        exit 12
+    fi
+    echo -e "${GREEN}Uninstallation is successful.${NC}"
+    return 0
+}
+
 install_spell() {
     SPELL_NAME=$1
     if [ -z $3 ]; then
@@ -98,11 +186,7 @@ install_spell() {
             SPELL_REPO=$(echo ${RESPONSE} | jq -r '.repo')
 
             if [ -z $VERSION ]; then
-                BRANCH=$(git ls-remote --tags --refs ${SPELL_REPO} | tail -n1 | sed 's/.*\///')
-                if [ -z $BRANCH ]; then
-                    BRANCH=$(git remote show ${SPELL_REPO} | grep "HEAD branch" | cut -d ":" -f 2)
-                    BRANCH="${BRANCH:1}"
-                fi
+                BRANCH=$(get_latest_tag_or_default_branch ${SPELL_REPO})
                 BRANCH_ORIG=$BRANCH
             else
                 if [[ $VERSION =~ ^[0-9x]+(\.[0-9x]+){0,3}$ ]]; then
@@ -132,7 +216,7 @@ install_spell() {
             elif [ $spell_type = "module" ]; then
                 occultist install || BUILD_FAIL=true
             fi
-            cd ../..
+            cd $THIS_DIR
 
             if [ $CLONE_FAIL = false ] && [ $BUILD_FAIL = false ]; then
                 if [ $LOCK = false ]; then
@@ -155,7 +239,7 @@ install_spell() {
             exit 4
         fi
 
-        echo -e "${GREEN}The spell ${YELLOW}${SPELL_NAME}${NC}:${YELLOW}${BRANCH}${GREEN} is successfully installed!${NC}"
+        echo -e "${GREEN}The spell ${YELLOW}${SPELL_NAME}${NC}:${YELLOW}${BRANCH}${GREEN} is successfully installed.${NC}"
         curl -s -o /dev/null -X GET \
             $API_BASE/spell/install/$SPELL_NAME \
             -H 'cache-control: no-cache' \
@@ -268,13 +352,13 @@ elif [ $1 = "register" ]; then
     printf "\b \n"
 
     if [ $STATUS_CODE -eq 200 ]; then
-        echo -e "\n${GREEN}The spell is successfully registered!${NC}\n"
+        echo -e "${GREEN}The spell is successfully registered!${NC}"
         exit 0
     elif [ $STATUS_CODE -eq 409 ]; then
-        echo -e "\n${YELLOW}The spell is already registered!${NC}\n"
+        echo -e "${YELLOW}The spell is already registered!${NC}"
         exit 2
     else
-        echo -e "\n${RED}Spell registration is failed!${NC}\n"
+        echo -e "${RED}Spell registration is failed!${NC}"
         exit 1
     fi
 
@@ -312,7 +396,11 @@ elif [ $1 = "install" ]; then
         done < <(jq -r '.dependencies | to_entries | .[] | .key + "=" + .value ' $SUBJECT_FILE)
     # Install and save a specific spell
     else
-        install_spell $2 $3 false
+        if [ $2 = $LANGUAGE_BINARY ]; then
+            install_language $3
+        else
+            install_spell $2 $3 false
+        fi
     fi
 
 # Upgrade the spells
@@ -325,9 +413,13 @@ elif [ $1 = "upgrade" ]; then
         done < <(jq -r '.dependencies | to_entries | .[] | .key + "=" + .value ' $JSON_FILE)
     # Upgrade and save a specific spell
     else
-        SPELL_NAME=$2
-        BRANCH=$(jq -r ".dependencies.${SPELL_NAME}" $JSON_FILE)
-        install_spell $SPELL_NAME $BRANCH $LOCK
+        if [ $2 = $LANGUAGE_BINARY ]; then
+            install_language $3
+        else
+            SPELL_NAME=$2
+            BRANCH=$(jq -r ".dependencies.${SPELL_NAME}" $JSON_FILE)
+            install_spell $SPELL_NAME $BRANCH $LOCK
+        fi
     fi
 
 # Remove a spell
@@ -337,19 +429,24 @@ elif [ $1 = "remove" ]; then
         echo -e "\n${RED}You have to specifiy a spell name!${NC}\n"
         exit 7
     else
-        SPELL_NAME=$2
-        if cat $JSON_FILE | jq -e ".dependencies | has(\"${SPELL_NAME}\")" > /dev/null; then
-            cd $SPELLS_DIR_NAME/ && \
-            rm -rf $SPELL_NAME && \
-            cd .. && \
-            rmdir $SPELLS_DIR_NAME/ &> /dev/null
-            jq -M "del(.dependencies.${SPELL_NAME})" $LOCK_FILE > tmp && mv tmp $LOCK_FILE && \
-            jq -M "del(.dependencies.${SPELL_NAME})" $JSON_FILE > tmp && mv tmp $JSON_FILE && \
-            echo -e "${GREEN}The spell ${YELLOW}${SPELL_NAME}${GREEN} is successfully removed!${NC}" || \
-            echo -e "\n${RED}Failed to remove spell ${YELLOW}${SPELL_NAME}${RED}!${NC}\n"
+        if [ $2 = $LANGUAGE_BINARY ]; then
+            uninstall_language
         else
-            echo -e "\n${RED}Spell ${YELLOW}${SPELL_NAME}${RED} is already removed!${NC}\n"
-            exit 8
+            SPELL_NAME=$2
+            if cat $JSON_FILE | jq -e ".dependencies | has(\"${SPELL_NAME}\")" > /dev/null; then
+                cd $SPELLS_DIR_NAME/ && \
+                rm -rf $SPELL_NAME && \
+                cd $THIS_DIR && \
+                rmdir $SPELLS_DIR_NAME/ &> /dev/null
+                jq -M "del(.dependencies.${SPELL_NAME})" $LOCK_FILE > tmp && mv tmp $LOCK_FILE && \
+                jq -M "del(.dependencies.${SPELL_NAME})" $JSON_FILE > tmp && mv tmp $JSON_FILE && \
+                echo -e "${GREEN}The spell ${YELLOW}${SPELL_NAME}${GREEN} is successfully removed.${NC}" || \
+                echo -e "${RED}Failed to remove spell ${YELLOW}${SPELL_NAME}${RED}!${NC}" || \
+                exit 9
+            else
+                echo -e "${RED}Spell ${YELLOW}${SPELL_NAME}${RED} is already removed!${NC}"
+                exit 8
+            fi
         fi
     fi
 fi
