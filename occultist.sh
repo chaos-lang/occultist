@@ -240,4 +240,19 @@ elif [ $1 = "install" ]; then
     else
         install_spell $2 $3 false
     fi
+
+# Upgrade the spells
+elif [ $1 = "upgrade" ]; then
+    LOCK=false
+    # Upgrade all the dependencies
+    if [ -z $2 ]; then
+        while IFS== read -r key value; do
+            install_spell $key $value $LOCK
+        done < <(jq -r '.dependencies | to_entries | .[] | .key + "=" + .value ' $JSON_FILE)
+    # Upgrade and save a specific spell
+    else
+        SPELL_NAME=$2
+        BRANCH=$(jq -r ".dependencies.${SPELL_NAME}" $JSON_FILE)
+        install_spell $SPELL_NAME $BRANCH $LOCK
+    fi
 fi
