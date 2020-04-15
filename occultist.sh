@@ -3,7 +3,8 @@
 # The spell definition file
 JSON_FILE='occultist.json'
 LOCK_FILE='occultist-lock.json'
-TRACKER_FILE='occultist-tracker.json'
+TRACKER_FILE='.occultist-tracker.json'
+TMP_FILE='.tmp.json'
 HOST='https://occultist-io.now.sh'
 API_BASE="$HOST/api"
 PROGRAM='Occultist'
@@ -227,9 +228,9 @@ install_spell() {
                 rm -rf .git/
                 spell_type=$(jq -r '.type' $JSON_FILE)
 
-                cat $DEPENDENCY_ROOT/$TRACKER_FILE | jq -r ".[. | length] |= . + {\"name\": \"${SPELL_NAME}\"}" > tmp && mv tmp $DEPENDENCY_ROOT/$TRACKER_FILE
-                cat $DEPENDENCY_ROOT/$TRACKER_FILE | jq -r ".[. | length - 1] |= . + {\"version\": \"${BRANCH}\"}" > tmp && mv tmp $DEPENDENCY_ROOT/$TRACKER_FILE
-                cat $DEPENDENCY_ROOT/$TRACKER_FILE | jq -r ".[. | length - 1] |= . + {\"path\": \"${THIS_DIR}/${SPELLS_DIR_NAME}/${SPELL_NAME}\"}" > tmp && mv tmp $DEPENDENCY_ROOT/$TRACKER_FILE
+                cat $DEPENDENCY_ROOT/$TRACKER_FILE | jq -r ".[. | length] |= . + {\"name\": \"${SPELL_NAME}\"}" > $TMP_FILE && mv $TMP_FILE $DEPENDENCY_ROOT/$TRACKER_FILE
+                cat $DEPENDENCY_ROOT/$TRACKER_FILE | jq -r ".[. | length - 1] |= . + {\"version\": \"${BRANCH}\"}" > $TMP_FILE && mv $TMP_FILE $DEPENDENCY_ROOT/$TRACKER_FILE
+                cat $DEPENDENCY_ROOT/$TRACKER_FILE | jq -r ".[. | length - 1] |= . + {\"path\": \"${THIS_DIR}/${SPELLS_DIR_NAME}/${SPELL_NAME}\"}" > $TMP_FILE && mv $TMP_FILE $DEPENDENCY_ROOT/$TRACKER_FILE
 
                 if [ $spell_type = "extension" ]; then
                     make || BUILD_FAIL=true
@@ -244,9 +245,9 @@ install_spell() {
 
             if [ $CLONE_FAIL = false ] && [ $BUILD_FAIL = false ]; then
                 if [ $LOCK = false ]; then
-                    cat $JSON_FILE | jq -r ".dependencies += {\"${SPELL_NAME}\": \"${BRANCH_ORIG}\"}" > tmp && mv tmp $JSON_FILE
+                    cat $JSON_FILE | jq -r ".dependencies += {\"${SPELL_NAME}\": \"${BRANCH_ORIG}\"}" > $TMP_FILE && mv $TMP_FILE $JSON_FILE
                 fi
-                cat $LOCK_FILE | jq -r ".dependencies += {\"${SPELL_NAME}\": \"${BRANCH}\"}" > tmp && mv tmp $LOCK_FILE
+                cat $LOCK_FILE | jq -r ".dependencies += {\"${SPELL_NAME}\": \"${BRANCH}\"}" > $TMP_FILE && mv $TMP_FILE $LOCK_FILE
             fi
         } &> /dev/null
 
@@ -295,7 +296,7 @@ if [ $1 = "init" ] || [ $1 = "edit" ] || [ $1 = "create" ]; then
     if cat $JSON_FILE | jq -e 'has("dependencies")' > /dev/null; then
         :
     else
-        cat $JSON_FILE | jq -r '. += {"dependencies": {}}' > tmp && mv tmp $JSON_FILE
+        cat $JSON_FILE | jq -r '. += {"dependencies": {}}' > $TMP_FILE && mv $TMP_FILE $JSON_FILE
     fi
 
     read -p "$(echo -e ${YELLOW}Spell name: ${NC}${BOLD_NC})" spell_name
@@ -330,20 +331,20 @@ if [ $1 = "init" ] || [ $1 = "edit" ] || [ $1 = "create" ]; then
         esac
     done
 
-    cat $JSON_FILE | jq -r ". += {\"name\": \"${spell_name}\"}" > tmp && mv tmp $JSON_FILE
-    cat $JSON_FILE | jq -r ". += {\"version\": \"${spell_version}\"}" > tmp && mv tmp $JSON_FILE
-    cat $JSON_FILE | jq -r ". += {\"description\": \"${spell_description}\"}" > tmp && mv tmp $JSON_FILE
-    cat $JSON_FILE | jq -r ". += {\"tags\": []}" > tmp && mv tmp $JSON_FILE
-    cat $JSON_FILE | jq -r ". += {\"type\": \"${spell_type}\"}" > tmp && mv tmp $JSON_FILE
-    cat $JSON_FILE | jq -r ". += {\"license\": \"${license}\"}" > tmp && mv tmp $JSON_FILE
-    cat $JSON_FILE | jq -r ". += {\"authors\": []}" > tmp && mv tmp $JSON_FILE
-    cat $JSON_FILE | jq -r ".authors[0] += {\"name\": \"${author_name}\"}" > tmp && mv tmp $JSON_FILE
-    cat $JSON_FILE | jq -r ".authors[0] += {\"email\": \"${author_email}\"}" > tmp && mv tmp $JSON_FILE
-    cat $JSON_FILE | jq -r ".authors[0] += {\"role\": \"${author_role}\"}" > tmp && mv tmp $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"name\": \"${spell_name}\"}" > $TMP_FILE && mv $TMP_FILE $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"version\": \"${spell_version}\"}" > $TMP_FILE && mv $TMP_FILE $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"description\": \"${spell_description}\"}" > $TMP_FILE && mv $TMP_FILE $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"tags\": []}" > $TMP_FILE && mv $TMP_FILE $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"type\": \"${spell_type}\"}" > $TMP_FILE && mv $TMP_FILE $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"license\": \"${license}\"}" > $TMP_FILE && mv $TMP_FILE $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"authors\": []}" > $TMP_FILE && mv $TMP_FILE $JSON_FILE
+    cat $JSON_FILE | jq -r ".authors[0] += {\"name\": \"${author_name}\"}" > $TMP_FILE && mv $TMP_FILE $JSON_FILE
+    cat $JSON_FILE | jq -r ".authors[0] += {\"email\": \"${author_email}\"}" > $TMP_FILE && mv $TMP_FILE $JSON_FILE
+    cat $JSON_FILE | jq -r ".authors[0] += {\"role\": \"${author_role}\"}" > $TMP_FILE && mv $TMP_FILE $JSON_FILE
 
     dependencies=$(jq -r '.dependencies' $JSON_FILE)
     jq -M "del(.dependencies)" $JSON_FILE > tmp && mv tmp $JSON_FILE
-    cat $JSON_FILE | jq -r ". += {\"dependencies\": ${dependencies}}" > tmp && mv tmp $JSON_FILE
+    cat $JSON_FILE | jq -r ". += {\"dependencies\": ${dependencies}}" > $TMP_FILE && mv $TMP_FILE $JSON_FILE
 
 # Register the spell
 elif [ $1 = "register" ]; then
@@ -398,7 +399,7 @@ elif [ $1 = "install" ]; then
     if cat $JSON_FILE | jq -e 'has("dependencies")' > /dev/null; then
         :
     else
-        cat $JSON_FILE | jq -r '. += {"dependencies": {}}' > tmp && mv tmp $JSON_FILE
+        cat $JSON_FILE | jq -r '. += {"dependencies": {}}' > $TMP_FILE && mv $TMP_FILE $JSON_FILE
     fi
 
     LOCK=true
@@ -409,7 +410,7 @@ elif [ $1 = "install" ]; then
     if cat $LOCK_FILE | jq -e 'has("dependencies")' > /dev/null; then
         :
     else
-        cat $LOCK_FILE | jq -r '. += {"dependencies": {}}' > tmp && mv tmp $LOCK_FILE
+        cat $LOCK_FILE | jq -r '. += {"dependencies": {}}' > $TMP_FILE && mv $TMP_FILE $LOCK_FILE
     fi
 
     # Install all the dependencies
@@ -466,8 +467,8 @@ elif [ $1 = "remove" ]; then
                 rm -rf $SPELL_NAME && \
                 cd $THIS_DIR && \
                 rmdir $SPELLS_DIR_NAME/ &> /dev/null
-                jq -M "del(.dependencies.${SPELL_NAME})" $LOCK_FILE > tmp && mv tmp $LOCK_FILE && \
-                jq -M "del(.dependencies.${SPELL_NAME})" $JSON_FILE > tmp && mv tmp $JSON_FILE && \
+                jq -M "del(.dependencies.${SPELL_NAME})" $LOCK_FILE > $TMP_FILE && mv $TMP_FILE $LOCK_FILE && \
+                jq -M "del(.dependencies.${SPELL_NAME})" $JSON_FILE > $TMP_FILE && mv $TMP_FILE $JSON_FILE && \
                 echo -e "${GREEN}The spell ${YELLOW}${SPELL_NAME}${GREEN} is successfully removed.${NC}" || \
                 echo -e "${RED}Failed to remove spell ${YELLOW}${SPELL_NAME}${RED}!${NC}" || \
                 exit 9
