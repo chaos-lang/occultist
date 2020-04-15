@@ -3,6 +3,7 @@
 # The spell definition file
 JSON_FILE='occultist.json'
 LOCK_FILE='occultist-lock.json'
+TRACKER_FILE='occultist-tracker.json'
 HOST='https://occultist-io.now.sh'
 API_BASE="$HOST/api"
 PROGRAM='Occultist'
@@ -12,6 +13,7 @@ LANGUAGE_REPO='https://github.com/chaos-lang/chaos.git'
 DESCRIPTION="Dependency manager for $LANGUAGE_NAME"
 SPELLS_DIR_NAME='spells'
 THIS_DIR=$(pwd)
+DEPENDENCY_ROOT=$THIS_DIR
 
 # Terminal colors
 RED='\033[0;31m'
@@ -161,6 +163,15 @@ install_spell() {
         VERSION=$2
         LOCK=$3
     fi
+    if [ -z $4 ]; then
+        :
+    else
+        DEPENDENCY_ROOT=$4
+    fi
+
+    if [ ! -f $DEPENDENCY_ROOT/$TRACKER_FILE ]; then
+        echo -e "[\n]" > $TRACKER_FILE
+    fi
 
     if [ -z $VERSION ]; then
         printf "Installing spell: ${YELLOW}${SPELL_NAME}${NC}\n"
@@ -204,18 +215,31 @@ install_spell() {
                 fi
             fi
 
+            SPELL_PATH=$(jq -r ".[] | select(.name == \"${SPELL_NAME}\") | select(.version == \"${BRANCH}\") | .path" ${DEPENDENCY_ROOT}/${TRACKER_FILE} | tail -n1)
+
             mkdir -p $SPELLS_DIR_NAME
             cd $SPELLS_DIR_NAME/
-            if [ -d "$SPELL_NAME" ]; then rm -rf $SPELL_NAME; fi
-            git clone --depth=1 --branch $BRANCH $SPELL_REPO $SPELL_NAME || CLONE_FAIL=true
-            cd $SPELL_NAME
-            rm -rf .git/
-            spell_type=$(jq -r '.type' $JSON_FILE)
-            if [ $spell_type = "extension" ]; then
-                make || BUILD_FAIL=true
-            elif [ $spell_type = "module" ]; then
-                occultist install || BUILD_FAIL=true
+
+            if [ -z $SPELL_PATH ]; then
+                if [ -d "$SPELL_NAME" ]; then rm -rf $SPELL_NAME; fi
+                git clone --depth=1 --branch $BRANCH $SPELL_REPO $SPELL_NAME || CLONE_FAIL=true
+                cd $SPELL_NAME
+                rm -rf .git/
+                spell_type=$(jq -r '.type' $JSON_FILE)
+
+                cat $DEPENDENCY_ROOT/$TRACKER_FILE | jq -r ".[. | length] |= . + {\"name\": \"${SPELL_NAME}\"}" > tmp && mv tmp $DEPENDENCY_ROOT/$TRACKER_FILE
+                cat $DEPENDENCY_ROOT/$TRACKER_FILE | jq -r ".[. | length - 1] |= . + {\"version\": \"${BRANCH}\"}" > tmp && mv tmp $DEPENDENCY_ROOT/$TRACKER_FILE
+                cat $DEPENDENCY_ROOT/$TRACKER_FILE | jq -r ".[. | length - 1] |= . + {\"path\": \"${THIS_DIR}/${SPELLS_DIR_NAME}/${SPELL_NAME}\"}" > tmp && mv tmp $DEPENDENCY_ROOT/$TRACKER_FILE
+
+                if [ $spell_type = "extension" ]; then
+                    make || BUILD_FAIL=true
+                elif [ $spell_type = "module" ]; then
+                    occultist install occultist $DEPENDENCY_ROOT || BUILD_FAIL=true
+                fi
+            else
+                ln -s $SPELL_PATH $SPELL_NAME
             fi
+
             cd $THIS_DIR
 
             if [ $CLONE_FAIL = false ] && [ $BUILD_FAIL = false ]; then
@@ -256,6 +280,10 @@ install_spell() {
         printf "\b"
         echo -e "${RED}Search for the spell is failed!${NC}"
         exit 6
+    fi
+
+    if [ -z $4 ]; then
+        rm $DEPENDENCY_ROOT/$TRACKER_FILE
     fi
 }
 
@@ -385,14 +413,14 @@ elif [ $1 = "install" ]; then
     fi
 
     # Install all the dependencies
-    if [ -z $2 ]; then
+    if [ -z $2 ] || [ $2 = "occultist" ]; then
         if [ $LOCK = true ]; then
             SUBJECT_FILE=$LOCK_FILE
         else
             SUBJECT_FILE=$JSON_FILE
         fi
         while IFS== read -r key value; do
-            install_spell $key $value $LOCK
+            install_spell $key $value $LOCK $3
         done < <(jq -r '.dependencies | to_entries | .[] | .key + "=" + .value ' $SUBJECT_FILE)
     # Install and save a specific spell
     else
