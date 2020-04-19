@@ -1,9 +1,8 @@
 SHELL=/bin/bash
 
 requirements:
-	apt update
-	apt install jq
+	./requirements.sh
 
-install:
+install: requirements
 	chmod +x occultist.sh
 	cp occultist.sh /usr/local/bin/occultist
