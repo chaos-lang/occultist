@@ -9,10 +9,12 @@ HOST='https://occultist.io'
 API_BASE="$HOST/api"
 PROGRAM='Occultist'
 PROGRAM_BINARY='occultist'
+PROGRAM_PATH=$(which occultist)
 BIN_PATH='/usr/local/bin/'
 LANGUAGE_NAME='the Chaos language'
 LANGUAGE_NAME_SHORT='Chaos'
 LANGUAGE_BINARY='chaos'
+LANGUAGE_PATH=$(which chaos)
 LANGUAGE_REPO='https://github.com/chaos-lang/chaos.git'
 DESCRIPTION="Dependency manager for $LANGUAGE_NAME"
 SPELLS_DIR_NAME='spells'
@@ -29,6 +31,21 @@ BOLD_YELLOW='\033[1;33m'
 BOLD_PURPLE='\033[1;35m'
 BOLD_NC='\033[1m'
 UNDERLINED_NC='\033[4m'
+
+uname_out="$(uname -s)"
+case "${uname_out}" in
+    Linux*)     PLATFORM=Linux;;
+    Darwin*)    PLATFORM=Mac;;
+    CYGWIN*)    PLATFORM=Cygwin;;
+    MINGW*)     PLATFORM=MinGw;;
+    *)          PLATFORM="UNKNOWN:${uname_out}"
+esac
+
+if [ ! "$PLATFORM" = "MinGw" ]; then
+    SUDO='sudo '
+else
+    SUDO=''
+fi
 
 clear
 printf "${YELLOW}%s${NC} - %s - ${YELLOW}%s${NC}\n" "$PROGRAM" "$DESCRIPTION" "$HOST"
@@ -77,20 +94,43 @@ spinner() {
     done
 }
 
+mingw_is_admin() {
+    net session > /dev/null 2>&1
+    if [ $? -eq 0 ]; then echo "admin"
+    else echo "user"; fi
+}
+
 get_latest_tag_or_default_branch() {
     local BRANCH=$(git ls-remote --tags --refs ${1} | tail -n1 | sed 's/.*\///')
     if [ -z $BRANCH ]; then
+        git init &> /dev/null
         local BRANCH=$(git remote show ${1} | grep "HEAD branch" | cut -d ":" -f 2)
         local BRANCH="${BRANCH:1}"
     fi
     echo $BRANCH
 }
 
-install_language() {
-    if [ "$EUID" -ne 0 ]; then
-        echo -e "${RED}To install ${LANGUAGE_NAME} you need to run this command as root!${NC}"
-        exit 10
+make() {
+    if [ ! "$PLATFORM" = "MinGw" ]; then
+        make $1 && return 0 || return 1
+    else
+        ./make.bat $1 && return 0 || return 1
     fi
+}
+
+install_language() {
+    if [ ! "$PLATFORM" = "MinGw" ]; then
+        if [ "$EUID" -ne 0 ]; then
+            echo -e "${RED}To install ${LANGUAGE_NAME} you need to run this command as root!${NC}"
+            exit 10
+        fi
+    else
+        if [ ! $(mingw_is_admin) = "admin" ]; then
+            echo -e "${RED}To install ${LANGUAGE_NAME} you need to run as administrator!${NC}"
+            exit 10
+        fi
+    fi
+
     if [ -z $1 ]; then
         printf "Installing ${BOLD_PURPLE}${LANGUAGE_NAME}${NC} to the system\n"
     else
@@ -146,12 +186,20 @@ install_language() {
 }
 
 uninstall_language() {
-    if [ "$EUID" -ne 0 ]; then
-        echo -e "${RED}To uninstall ${LANGUAGE_NAME} you need to run this command as root!${NC}"
-        exit 10
+    if [ ! "$PLATFORM" = "MinGw" ]; then
+        if [ "$EUID" -ne 0 ]; then
+            echo -e "${RED}To uninstall ${LANGUAGE_NAME} you need to run this command as root!${NC}"
+            exit 10
+        fi
+    else
+        if [ ! $(mingw_is_admin) = "admin" ]; then
+            echo -e "${RED}To uninstall ${LANGUAGE_NAME} you need to run as administrator!${NC}"
+            exit 10
+        fi
     fi
+
     UNINSTALLATION_FAIL=false
-    rm $BIN_PATH$LANGUAGE_BINARY || UNINSTALLATION_FAIL=true
+    rm $LANGUAGE_PATH || UNINSTALLATION_FAIL=true
     if [ $UNINSTALLATION_FAIL = true ]; then
         echo -e "${RED}Uninstallation is failed!${NC}"
         exit 12
@@ -294,7 +342,7 @@ install_spell() {
 }
 
 print_help_text() {
-    read -r -d '' HELP_TEXT << EOF
+    read -r -d '' HELP_TEXT << "EOF"
 
 ${YELLOW}Usage:${NC}
     ${$PROGRAM_BINARY} [options] [commands]
@@ -308,15 +356,15 @@ ${YELLOW}Usage:${NC}
     ${$PROGRAM_BINARY} ${YELLOW}register${NC}
 
 ${YELLOW}Special commands:${NC}
-    ${BOLD_RED}sudo${NC} ${$PROGRAM_BINARY} ${GREEN}install${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
-    ${BOLD_RED}sudo${NC} ${$PROGRAM_BINARY} ${GREEN}upgrade${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
-    ${BOLD_RED}sudo${NC} ${$PROGRAM_BINARY} ${RED}remove${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
-    ${BOLD_RED}sudo${NC} ${$PROGRAM_BINARY} ${GREEN}upgrade${NC} ${BOLD_YELLOW}${$PROGRAM_BINARY}${NC}
-    ${BOLD_RED}sudo${NC} ${$PROGRAM_BINARY} ${RED}remove${NC} ${BOLD_YELLOW}${$PROGRAM_BINARY}${NC}
+    ${BOLD_RED}${SUDO}${NC}${$PROGRAM_BINARY} ${GREEN}install${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
+    ${BOLD_RED}${SUDO}${NC}${$PROGRAM_BINARY} ${GREEN}upgrade${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
+    ${BOLD_RED}${SUDO}${NC}${$PROGRAM_BINARY} ${RED}remove${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
+    ${BOLD_RED}${SUDO}${NC}${$PROGRAM_BINARY} ${GREEN}upgrade${NC} ${BOLD_YELLOW}${$PROGRAM_BINARY}${NC}
+    ${BOLD_RED}${SUDO}${NC}${$PROGRAM_BINARY} ${RED}remove${NC} ${BOLD_YELLOW}${$PROGRAM_BINARY}${NC}
 
 ${YELLOW}Options:${NC}
 ${GREEN}    -h, --help          ${NC}Display this help message.
-${GREEN}    -d, --dont-update   ${NC}Disable check for updates.
+${GREEN}    -n, --no-update     ${NC}Disable check for updates.
 
 ${YELLOW}Command Descriptions:${NC}
 ${GREEN}    install             ${NC}Install a spell. Optionally specify version or branch.
@@ -337,7 +385,7 @@ check_for_updates() {
     SPINNER_PID=$!
 
     curl -s -o /tmp/${PROGRAM_BINARY} -L https://git.io/Jfv1u
-    checksum1=$(md5sum ${BIN_PATH}${PROGRAM_BINARY} | awk '{ print $1 }')
+    checksum1=$(md5sum ${PROGRAM_PATH} | awk '{ print $1 }')
     checksum2=$(md5sum /tmp/${PROGRAM_BINARY} | awk '{ print $1 }')
 
     kill -9 $SPINNER_PID
@@ -348,7 +396,7 @@ check_for_updates() {
         read -r -d '' UPGRADE_TEXT << EOF
 ${RED}A new version of ${PROGRAM} is available! Run:${NC}
 
-sudo ${PROGRAM_BINARY} upgrade ${PROGRAM_BINARY}\n
+${SUDO}${PROGRAM_BINARY} upgrade ${PROGRAM_BINARY}\n
 EOF
         echo -e "$UPGRADE_TEXT"
         exit 15
@@ -358,9 +406,16 @@ EOF
 }
 
 upgrade_dependency_manager() {
-    if [ "$EUID" -ne 0 ]; then
-        echo -e "${RED}To upgrade ${PROGRAM} you need to run this command as root!${NC}"
-        exit 16
+    if [ ! "$PLATFORM" = "MinGw" ]; then
+        if [ "$EUID" -ne 0 ]; then
+            echo -e "${RED}To upgrade ${PROGRAM} you need to run this command as root!${NC}"
+            exit 16
+        fi
+    else
+        if [ ! $(mingw_is_admin) = "admin" ]; then
+            echo -e "${RED}To upgrade ${PROGRAM} you need to run as administrator!${NC}"
+            exit 10
+        fi
     fi
 
     printf "Upgrading ${YELLOW}${PROGRAM_BINARY}${NC}...\n"
@@ -368,7 +423,7 @@ upgrade_dependency_manager() {
     spinner &
     SPINNER_PID=$!
 
-    curl -s -o ${BIN_PATH}${PROGRAM_BINARY} -L https://git.io/Jfv1u
+    curl -s -o ${PROGRAM_PATH} -L https://git.io/Jfv1u
 
     kill -9 $SPINNER_PID
     wait $SPINNER_PID 2>/dev/null
@@ -377,16 +432,16 @@ upgrade_dependency_manager() {
     echo -e "${GREEN}${PROGRAM} is successfully upgraded.${NC}"
 }
 
+if [ "$#" -lt 1 ] || [ $1 = "-h" ] || [ $1 = "--help" ]; then
+    print_help_text
+fi
+
 if [ "$#" -lt 2 ] || [ ! $1 = "upgrade" ] || [ ! $2 = "$PROGRAM_BINARY" ]; then
-    if [ "$1" = "-d" ] || [ "$1" = "--dont-update" ]; then
+    if [ "$1" = "-n" ] || [ "$1" = "--no-update" ]; then
         shift
     else
         check_for_updates
     fi
-fi
-
-if [ "$#" -lt 1 ] || [ $1 = "-h" ] || [ $1 = "--help" ]; then
-    print_help_text
 fi
 
 # Create or edit $JSON_FILE
@@ -394,11 +449,13 @@ if [ $1 = "init" ] || [ $1 = "edit" ] || [ $1 = "create" ]; then
     if [ ! -f $JSON_FILE ]; then
         echo -e "{\n}" > $JSON_FILE
     fi
-    if cat $JSON_FILE | jq -e 'has("dependencies")' > /dev/null; then
-        :
-    else
-        cat $JSON_FILE | jq -r '. += {"dependencies": {}}' > $TMP_FILE && mv $TMP_FILE $JSON_FILE
-    fi
+    {
+        if cat $JSON_FILE | jq -e 'has("dependencies")'; then
+            :
+        else
+            cat $JSON_FILE | jq -r '. += {"dependencies": {}}' > $TMP_FILE && mv $TMP_FILE $JSON_FILE
+        fi
+    } &> /dev/null
 
     read -p "$(echo -e ${YELLOW}Spell name: ${NC}${BOLD_NC})" spell_name
     read -p "$(echo -e ${YELLOW}Spell version: ${NC}${BOLD_NC})" spell_version
@@ -497,22 +554,24 @@ elif [ $1 = "install" ]; then
     if [ ! -f $JSON_FILE ]; then
         echo -e "{\n}" > $JSON_FILE
     fi
-    if cat $JSON_FILE | jq -e 'has("dependencies")' > /dev/null; then
-        :
-    else
-        cat $JSON_FILE | jq -r '. += {"dependencies": {}}' > $TMP_FILE && mv $TMP_FILE $JSON_FILE
-    fi
+    {
+        if cat $JSON_FILE | jq -e 'has("dependencies")'; then
+            :
+        else
+            cat $JSON_FILE | jq -r '. += {"dependencies": {}}' > $TMP_FILE && mv $TMP_FILE $JSON_FILE
+        fi
 
-    LOCK=true
-    if [ ! -f $LOCK_FILE ]; then
-        echo -e "{\n}" > $LOCK_FILE
-        LOCK=false
-    fi
-    if cat $LOCK_FILE | jq -e 'has("dependencies")' > /dev/null; then
-        :
-    else
-        cat $LOCK_FILE | jq -r '. += {"dependencies": {}}' > $TMP_FILE && mv $TMP_FILE $LOCK_FILE
-    fi
+        LOCK=true
+        if [ ! -f $LOCK_FILE ]; then
+            echo -e "{\n}" > $LOCK_FILE
+            LOCK=false
+        fi
+        if cat $LOCK_FILE | jq -e 'has("dependencies")'; then
+            :
+        else
+            cat $LOCK_FILE | jq -r '. += {"dependencies": {}}' > $TMP_FILE && mv $TMP_FILE $LOCK_FILE
+        fi
+    } &> /dev/null
 
     # Install all the dependencies
     if [ -z $2 ] || [ $2 = "$PROGRAM_BINARY" ]; then
@@ -565,7 +624,11 @@ elif [ $1 = "remove" ]; then
             uninstall_language
         else
             SPELL_NAME=$2
-            if cat $JSON_FILE | jq -e ".dependencies | has(\"${SPELL_NAME}\")" > /dev/null; then
+            IS_SPELL_EXISTS=false
+            {
+                IS_SPELL_EXISTS=$(cat $JSON_FILE | jq -e ".dependencies | has(\"${SPELL_NAME}\")")
+            } &> /dev/null
+            if IS_SPELL_EXISTS; then
                 cd $SPELLS_DIR_NAME/ && \
                 rm -rf $SPELL_NAME && \
                 cd $THIS_DIR && \
