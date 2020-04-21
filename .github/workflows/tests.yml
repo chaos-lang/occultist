@@ -1,0 +1,208 @@
+name: Automated Tests
+
+on: [push]
+
+jobs:
+  linux:
+    name: linux
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+
+    strategy:
+      max-parallel: 6
+      fail-fast: false
+      matrix:
+        target:
+          - ubuntu
+          - debian
+          - centos
+          - fedora
+          - archlinux
+          - alpine
+
+        include:
+          - target: ubuntu
+            image: ubuntu:latest
+          - target: debian
+            image: debian:latest
+          - target: centos
+            image: centos:latest
+          - target: fedora
+            image: fedora:latest
+          - target: archlinux
+            image: archlinux:latest
+          - target: alpine
+            image: alpine:latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Install dependencies (debian/ubuntu)
+      run: |
+        apt update
+        apt install -y make
+        make requirements
+      if: matrix.target == 'ubuntu' || matrix.target == 'debian'
+
+    - name: Install dependencies (centos)
+      run: |
+        yum install -y which make
+      if: matrix.target == 'centos'
+
+    - name: Install dependencies (fedora)
+      run: |
+        dnf install -y which make findutils
+      if: matrix.target == 'fedora'
+
+    - name: Install dependencies (archlinux)
+      run: |
+        pacman -Syu --noconfirm which make
+      if: matrix.target == 'archlinux'
+
+    - name: Install dependencies (alpine)
+      run: |
+        apk update
+        apk add linux-headers bash which make
+      if: matrix.target == 'alpine'
+
+    - name: Install the Occultist
+      run: |
+        ./requirements.sh
+        make install
+
+    - name: Install the Chaos Language
+      run: |
+        occultist -n install chaos
+        chaos --version
+
+    - name: Install a spell
+      run: |
+        occultist -n install template
+        cat occultist.json
+
+    - name: Install a spell (specific version)
+      run: |
+        occultist -n install template 1.0.0
+        cat occultist.json
+
+    - name: Install a spell (semantic versioning)
+      run: |
+        occultist -n install template 1.x.x
+        cat occultist.json
+
+    - name: Install a spell (specific branch)
+      run: |
+        occultist -n install template master
+        cat occultist.json
+
+    - name: Upgrade a spell
+      run: |
+        occultist -n upgrade template
+
+    - name: Upgrade the Chaos Language
+      run: |
+        occultist -n upgrade chaos
+
+    - name: Upgrade the Occultist
+      run: |
+        occultist -n upgrade occultist
+        make install
+
+    - name: Remove a spell
+      run: |
+        cat occultist.json
+        occultist -n remove template
+        cat occultist.json
+
+    - name: Uninstall the Chaos Language
+      run: |
+        occultist -n remove chaos
+
+    - name: Remove the Occultist
+      run: |
+        occultist -n remove occultist
+
+  macos:
+    name: macos
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Install dependencies
+      run: |
+        mv /usr/local/bin/gcc-8 /usr/local/bin/gcc
+        git clone https://github.com/chaos-lang/chaos.git
+        cd chaos/
+        make requirements
+        cd ..
+
+    - name: Install the Occultist
+      run: |
+        source ~/.bash_profile
+        make install
+
+    - name: Install the Chaos Language
+      run: |
+        source ~/.bash_profile
+        sudo occultist -n install chaos
+        sudo rm occultist.json occultist-lock.json
+        chaos --version
+
+    - name: Install a spell
+      run: |
+        source ~/.bash_profile
+        occultist -n install template
+        cat occultist.json
+
+    - name: Install a spell (specific version)
+      run: |
+        source ~/.bash_profile
+        occultist -n install template 1.0.0
+        cat occultist.json
+
+    - name: Install a spell (semantic versioning)
+      run: |
+        source ~/.bash_profile
+        occultist -n install template 1.x.x
+        cat occultist.json
+
+    - name: Install a spell (specific branch)
+      run: |
+        source ~/.bash_profile
+        occultist -n install template master
+        cat occultist.json
+
+    - name: Upgrade a spell
+      run: |
+        source ~/.bash_profile
+        occultist -n upgrade template
+
+    - name: Upgrade the Chaos Language
+      run: |
+        source ~/.bash_profile
+        sudo occultist -n upgrade chaos
+
+    - name: Upgrade the Occultist
+      run: |
+        source ~/.bash_profile
+        sudo occultist -n upgrade occultist
+        make install
+
+    - name: Remove a spell
+      run: |
+        source ~/.bash_profile
+        cat occultist.json
+        occultist -n remove template
+        cat occultist.json
+
+    - name: Uninstall the Chaos Language
+      run: |
+        source ~/.bash_profile
+        sudo occultist -n remove chaos
+
+    - name: Remove the Occultist
+      run: |
+        source ~/.bash_profile
+        sudo occultist -n remove occultist

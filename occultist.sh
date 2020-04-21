@@ -656,7 +656,7 @@ elif [ $1 = "remove" ]; then
             {
                 IS_SPELL_EXISTS=$(cat $JSON_FILE | jq -e ".dependencies | has(\"${SPELL_NAME}\")")
             } &> /dev/null
-            if IS_SPELL_EXISTS; then
+            if [ $IS_SPELL_EXISTS = "true" ]; then
                 cd $SPELLS_DIR_NAME/ && \
                 rm -rf $SPELL_NAME && \
                 cd $THIS_DIR && \

@@ -8,6 +8,12 @@
     <strong>Say goodbye to dependency hell!</strong>
 </p>
 
+<p align="center">
+    <a href="https://github.com/chaos-lang/chaos/actions?query=workflow%3A%22Automated+Tests%22">
+        <img alt="GitHub Workflow Automated Tests Status" src="https://img.shields.io/github/workflow/status/chaos-lang/chaos/Automated%20Tests?logo=GitHub&label=tests&style=flat-square">
+    </a>
+</p>
+
 Occultist dependency manager eliminates the dependency conflicts by isolating the dependencies of
 each Chaos spells within its own `spells/` directory.
 
