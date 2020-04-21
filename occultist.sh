@@ -137,7 +137,7 @@ install_language() {
     else
         VERSION=$1
         VERSION_ORIG=$VERSION
-        if [[ $VERSION =~ ^[0-9x]+(\.[0-9x]+){0,3}$ ]]; then
+        if [[ $VERSION =~ ^[0-9x]+(\.[0-9x]+){0,3}$ ]] || [[ $VERSION =~ ^[0-9x]+(\.[0-9x]+){0,3}-.*$ ]] || [[ $VERSION =~ ^[0-9x]+(\.[0-9x]+){0,3}\+.*$ ]] || [[ $VERSION =~ ^[0-9x]+(\.[0-9x]+){0,3}\..*$ ]]; then
             VERSION="v$VERSION"
             VERSION=$(echo ${VERSION} | tr x \*)
             VERSION=$(git ls-remote --tags --refs ${LANGUAGE_REPO} | sed 's/.*\///' | grep ${VERSION} | tail -n1)
@@ -256,7 +256,7 @@ install_spell() {
                 BRANCH=$(get_latest_tag_or_default_branch ${SPELL_REPO})
                 BRANCH_ORIG=$BRANCH
             else
-                if [[ $VERSION =~ ^[0-9x]+(\.[0-9x]+){0,3}$ ]]; then
+                if [[ $VERSION =~ ^[0-9x]+(\.[0-9x]+){0,3}$ ]] || [[ $VERSION =~ ^[0-9x]+(\.[0-9x]+){0,3}-.*$ ]] || [[ $VERSION =~ ^[0-9x]+(\.[0-9x]+){0,3}\+.*$ ]] || [[ $VERSION =~ ^[0-9x]+(\.[0-9x]+){0,3}\..*$ ]]; then
                     BRANCH_ORIG="$VERSION"
                     BRANCH="v$VERSION"
                     BRANCH=$(echo ${BRANCH} | tr x \*)
