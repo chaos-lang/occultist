@@ -243,7 +243,8 @@ install_spell() {
         -H 'content-type: application/json')
 
     STATUS_CODE=$(echo $RESPONSE | tail -c 4)
-    RESPONSE=${RESPONSE::-3}
+    RESPONSE_LENGTH=${#RESPONSE}
+    RESPONSE=${RESPONSE:0:RESPONSE_LENGTH-3}
     CLONE_FAIL=false
     BUILD_FAIL=false
 
