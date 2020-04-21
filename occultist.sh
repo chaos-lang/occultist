@@ -11,6 +11,7 @@ PROGRAM='Occultist'
 PROGRAM_BINARY='occultist'
 BIN_PATH='/usr/local/bin/'
 LANGUAGE_NAME='the Chaos language'
+LANGUAGE_NAME_SHORT='Chaos'
 LANGUAGE_BINARY='chaos'
 LANGUAGE_REPO='https://github.com/chaos-lang/chaos.git'
 DESCRIPTION="Dependency manager for $LANGUAGE_NAME"
@@ -31,7 +32,7 @@ UNDERLINED_NC='\033[4m'
 
 clear
 printf "${YELLOW}%s${NC} - %s - ${YELLOW}%s${NC}\n" "$PROGRAM" "$DESCRIPTION" "$HOST"
-# Occultist icon ANSI colors
+# Program icon ANSI colors
 cat << "EOF"
 [38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m
 [38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;234m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;232m.[39m[38;5;232m.[39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;237m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m
@@ -239,7 +240,7 @@ install_spell() {
                 if [ $spell_type = "extension" ]; then
                     make || BUILD_FAIL=true
                 elif [ $spell_type = "module" ]; then
-                    occultist install occultist $DEPENDENCY_ROOT || BUILD_FAIL=true
+                    $PROGRAM_BINARY install $PROGRAM_BINARY $DEPENDENCY_ROOT || BUILD_FAIL=true
                 fi
             else
                 ln -s $SPELL_PATH $SPELL_NAME
@@ -296,22 +297,22 @@ print_help_text() {
     read -r -d '' HELP_TEXT << EOF
 
 ${YELLOW}Usage:${NC}
-    occultist [options] [commands]
-    occultist ${GREEN}install${NC} [spell]
-    occultist ${GREEN}install${NC} [spell] [version]
-    occultist ${GREEN}install${NC} [spell] [branch]
-    occultist ${GREEN}upgrade${NC} [spell]
-    occultist ${RED}remove${NC} [spell]
-    occultist init
-    occultist edit
-    occultist ${YELLOW}register${NC}
+    ${$PROGRAM_BINARY} [options] [commands]
+    ${$PROGRAM_BINARY} ${GREEN}install${NC} [spell]
+    ${$PROGRAM_BINARY} ${GREEN}install${NC} [spell] [version]
+    ${$PROGRAM_BINARY} ${GREEN}install${NC} [spell] [branch]
+    ${$PROGRAM_BINARY} ${GREEN}upgrade${NC} [spell]
+    ${$PROGRAM_BINARY} ${RED}remove${NC} [spell]
+    ${$PROGRAM_BINARY} init
+    ${$PROGRAM_BINARY} edit
+    ${$PROGRAM_BINARY} ${YELLOW}register${NC}
 
 ${YELLOW}Special commands:${NC}
-    ${BOLD_RED}sudo${NC} occultist ${GREEN}install${NC} ${BOLD_PURPLE}chaos${NC}
-    ${BOLD_RED}sudo${NC} occultist ${GREEN}upgrade${NC} ${BOLD_PURPLE}chaos${NC}
-    ${BOLD_RED}sudo${NC} occultist ${RED}remove${NC} ${BOLD_PURPLE}chaos${NC}
-    ${BOLD_RED}sudo${NC} occultist ${GREEN}upgrade${NC} ${BOLD_YELLOW}occultist${NC}
-    ${BOLD_RED}sudo${NC} occultist ${RED}remove${NC} ${BOLD_YELLOW}occultist${NC}
+    ${BOLD_RED}sudo${NC} ${$PROGRAM_BINARY} ${GREEN}install${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
+    ${BOLD_RED}sudo${NC} ${$PROGRAM_BINARY} ${GREEN}upgrade${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
+    ${BOLD_RED}sudo${NC} ${$PROGRAM_BINARY} ${RED}remove${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
+    ${BOLD_RED}sudo${NC} ${$PROGRAM_BINARY} ${GREEN}upgrade${NC} ${BOLD_YELLOW}${$PROGRAM_BINARY}${NC}
+    ${BOLD_RED}sudo${NC} ${$PROGRAM_BINARY} ${RED}remove${NC} ${BOLD_YELLOW}${$PROGRAM_BINARY}${NC}
 
 ${YELLOW}Options:${NC}
 ${GREEN}    -h, --help          ${NC}Display this help message.
@@ -319,11 +320,11 @@ ${GREEN}    -d, --dont-update   ${NC}Disable check for updates.
 
 ${YELLOW}Command Descriptions:${NC}
 ${GREEN}    install             ${NC}Install a spell. Optionally specify version or branch.
-${GREEN}    upgrade             ${NC}Upgrade the spell according to the version in occultist.json file.
+${GREEN}    upgrade             ${NC}Upgrade the spell according to the version in ${JSON_FILE} file.
 ${GREEN}    remove              ${NC}Uninstall a spell.
-${GREEN}    init                ${NC}Generate a new occultist.json file automatically by answering the questions.
-${GREEN}    edit                ${NC}Edit an existing occultist.json file.
-${GREEN}    register            ${NC}Register a new spell to The Chaos Spell Index.
+${GREEN}    init                ${NC}Generate a new ${JSON_FILE} file automatically by answering the questions.
+${GREEN}    edit                ${NC}Edit an existing ${JSON_FILE} file.
+${GREEN}    register            ${NC}Register a new spell to The ${LANGUAGE_NAME_SHORT} Spell Index.
 EOF
     echo -e "$HELP_TEXT"
     exit 14
@@ -341,7 +342,7 @@ check_for_updates() {
 
     kill -9 $SPINNER_PID
     wait $SPINNER_PID 2>/dev/null
-    printf "\b \n"
+    printf "\b"
 
     if [ ! "$checksum1" = "$checksum2" ]; then
         read -r -d '' UPGRADE_TEXT << EOF
@@ -376,7 +377,7 @@ upgrade_dependency_manager() {
     echo -e "${GREEN}${PROGRAM} is successfully upgraded.${NC}"
 }
 
-if [ "$#" -lt 2 ] || [ ! $1 = "upgrade" ] || [ ! $2 = "occultist" ]; then
+if [ "$#" -lt 2 ] || [ ! $1 = "upgrade" ] || [ ! $2 = "$PROGRAM_BINARY" ]; then
     if [ "$1" = "-d" ] || [ "$1" = "--dont-update" ]; then
         shift
     else
@@ -388,7 +389,7 @@ if [ "$#" -lt 1 ] || [ $1 = "-h" ] || [ $1 = "--help" ]; then
     print_help_text
 fi
 
-# Create or edit occultist.json
+# Create or edit $JSON_FILE
 if [ $1 = "init" ] || [ $1 = "edit" ] || [ $1 = "create" ]; then
     if [ ! -f $JSON_FILE ]; then
         echo -e "{\n}" > $JSON_FILE
@@ -514,7 +515,7 @@ elif [ $1 = "install" ]; then
     fi
 
     # Install all the dependencies
-    if [ -z $2 ] || [ $2 = "occultist" ]; then
+    if [ -z $2 ] || [ $2 = "$PROGRAM_BINARY" ]; then
         if [ $LOCK = true ]; then
             SUBJECT_FILE=$LOCK_FILE
         else
