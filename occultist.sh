@@ -361,6 +361,7 @@ ${YELLOW}Special commands:${NC}
     ${BOLD_RED}${SUDO}${NC}${PROGRAM_BINARY} ${GREEN}upgrade${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
     ${BOLD_RED}${SUDO}${NC}${PROGRAM_BINARY} ${RED}remove${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
     ${BOLD_RED}${SUDO}${NC}${PROGRAM_BINARY} ${GREEN}upgrade${NC} ${BOLD_YELLOW}${PROGRAM_BINARY}${NC}
+    ${BOLD_RED}${SUDO}${NC}${PROGRAM_BINARY} ${GREEN}remove${NC} ${BOLD_YELLOW}${PROGRAM_BINARY}${NC}
     ${BOLD_RED}${SUDO}${NC}${PROGRAM_BINARY} ${RED}remove${NC} ${BOLD_YELLOW}${PROGRAM_BINARY}${NC}
 
 ${YELLOW}Options:${NC}
@@ -409,12 +410,12 @@ EOF
 upgrade_dependency_manager() {
     if [ ! "$PLATFORM" = "MinGw" ]; then
         if [ "$EUID" -ne 0 ]; then
-            echo -e "${RED}To upgrade ${PROGRAM} you need to run this command as root!${NC}"
+            echo -e "${RED}To remove ${PROGRAM} you need to run this command as root!${NC}"
             exit 16
         fi
     else
         if [ ! $(mingw_is_admin) = "admin" ]; then
-            echo -e "${RED}To upgrade ${PROGRAM} you need to run as administrator!${NC}"
+            echo -e "${RED}To remove ${PROGRAM} you need to run as administrator!${NC}"
             exit 10
         fi
     fi
@@ -431,6 +432,29 @@ upgrade_dependency_manager() {
     printf "\b"
 
     echo -e "${GREEN}${PROGRAM} is successfully upgraded.${NC}"
+}
+
+remove_dependency_manager() {
+    if [ ! "$PLATFORM" = "MinGw" ]; then
+        if [ "$EUID" -ne 0 ]; then
+            echo -e "${RED}To upgrade ${PROGRAM} you need to run this command as root!${NC}"
+            exit 16
+        fi
+    else
+        if [ ! $(mingw_is_admin) = "admin" ]; then
+            echo -e "${RED}To upgrade ${PROGRAM} you need to run as administrator!${NC}"
+            exit 10
+        fi
+    fi
+
+    REMOVE_FAIL=false
+    rm $PROGRAM_PATH || REMOVE=true
+    if [ $REMOVE_FAIL = true ]; then
+        echo -e "${RED}Failed to remove ${PROGRAM}!${NC}"
+        exit 17
+    fi
+    echo -e "${GREEN}${PROGRAM} is successfully removed.${NC}"
+    return 0
 }
 
 if [ "$#" -lt 1 ] || [ $1 = "-h" ] || [ $1 = "--help" ]; then
@@ -623,6 +647,8 @@ elif [ $1 = "remove" ]; then
     else
         if [ $2 = $LANGUAGE_BINARY ]; then
             uninstall_language
+        elif [ $2 = $PROGRAM_BINARY ]; then
+            remove_dependency_manager
         else
             SPELL_NAME=$2
             IS_SPELL_EXISTS=false
