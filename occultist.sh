@@ -10,6 +10,7 @@ API_BASE="$HOST/api"
 PROGRAM='Occultist'
 PROGRAM_BINARY='occultist'
 PROGRAM_PATH=$(which occultist)
+PROGRAM_RAW_URL='https://raw.githubusercontent.com/chaos-lang/occultist/master/occultist.sh'
 BIN_PATH='/usr/local/bin/'
 LANGUAGE_NAME='the Chaos language'
 LANGUAGE_NAME_SHORT='Chaos'
@@ -110,7 +111,7 @@ get_latest_tag_or_default_branch() {
     echo $BRANCH
 }
 
-make() {
+make_c() {
     if [ ! "$PLATFORM" = "MinGw" ]; then
         make $1 && return 0 || return 1
     else
@@ -165,9 +166,9 @@ install_language() {
         fi
         git clone --depth=1 --branch $BRANCH $LANGUAGE_REPO /tmp/$LANGUAGE_BINARY && \
         cd /tmp/$LANGUAGE_BINARY/ && \
-        make requirements && \
-        make && \
-        make install || INSTALLATION_FAIL=true
+        make_c requirements && \
+        make_c && \
+        make_c install || INSTALLATION_FAIL=true
         cd $THIS_DIR
         rm -rf /tmp/$LANGUAGE_BINARY/
     } &> /dev/null
@@ -286,7 +287,7 @@ install_spell() {
                 cat $DEPENDENCY_ROOT/$TRACKER_FILE | jq -r ".[. | length - 1] |= . + {\"path\": \"${THIS_DIR}/${SPELLS_DIR_NAME}/${SPELL_NAME}\"}" > $TMP_FILE && mv $TMP_FILE $DEPENDENCY_ROOT/$TRACKER_FILE
 
                 if [ $spell_type = "extension" ]; then
-                    make || BUILD_FAIL=true
+                    make_c || BUILD_FAIL=true
                 elif [ $spell_type = "module" ]; then
                     $PROGRAM_BINARY install $PROGRAM_BINARY $DEPENDENCY_ROOT || BUILD_FAIL=true
                 fi
@@ -342,25 +343,25 @@ install_spell() {
 }
 
 print_help_text() {
-    read -r -d '' HELP_TEXT << "EOF"
+    read -r -d '' HELP_TEXT << EOF
 
 ${YELLOW}Usage:${NC}
-    ${$PROGRAM_BINARY} [options] [commands]
-    ${$PROGRAM_BINARY} ${GREEN}install${NC} [spell]
-    ${$PROGRAM_BINARY} ${GREEN}install${NC} [spell] [version]
-    ${$PROGRAM_BINARY} ${GREEN}install${NC} [spell] [branch]
-    ${$PROGRAM_BINARY} ${GREEN}upgrade${NC} [spell]
-    ${$PROGRAM_BINARY} ${RED}remove${NC} [spell]
-    ${$PROGRAM_BINARY} init
-    ${$PROGRAM_BINARY} edit
-    ${$PROGRAM_BINARY} ${YELLOW}register${NC}
+    ${PROGRAM_BINARY} [options] [commands]
+    ${PROGRAM_BINARY} ${GREEN}install${NC} [spell]
+    ${PROGRAM_BINARY} ${GREEN}install${NC} [spell] [version]
+    ${PROGRAM_BINARY} ${GREEN}install${NC} [spell] [branch]
+    ${PROGRAM_BINARY} ${GREEN}upgrade${NC} [spell]
+    ${PROGRAM_BINARY} ${RED}remove${NC} [spell]
+    ${PROGRAM_BINARY} init
+    ${PROGRAM_BINARY} edit
+    ${PROGRAM_BINARY} ${YELLOW}register${NC}
 
 ${YELLOW}Special commands:${NC}
-    ${BOLD_RED}${SUDO}${NC}${$PROGRAM_BINARY} ${GREEN}install${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
-    ${BOLD_RED}${SUDO}${NC}${$PROGRAM_BINARY} ${GREEN}upgrade${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
-    ${BOLD_RED}${SUDO}${NC}${$PROGRAM_BINARY} ${RED}remove${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
-    ${BOLD_RED}${SUDO}${NC}${$PROGRAM_BINARY} ${GREEN}upgrade${NC} ${BOLD_YELLOW}${$PROGRAM_BINARY}${NC}
-    ${BOLD_RED}${SUDO}${NC}${$PROGRAM_BINARY} ${RED}remove${NC} ${BOLD_YELLOW}${$PROGRAM_BINARY}${NC}
+    ${BOLD_RED}${SUDO}${NC}${PROGRAM_BINARY} ${GREEN}install${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
+    ${BOLD_RED}${SUDO}${NC}${PROGRAM_BINARY} ${GREEN}upgrade${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
+    ${BOLD_RED}${SUDO}${NC}${PROGRAM_BINARY} ${RED}remove${NC} ${BOLD_PURPLE}${LANGUAGE_BINARY}${NC}
+    ${BOLD_RED}${SUDO}${NC}${PROGRAM_BINARY} ${GREEN}upgrade${NC} ${BOLD_YELLOW}${PROGRAM_BINARY}${NC}
+    ${BOLD_RED}${SUDO}${NC}${PROGRAM_BINARY} ${RED}remove${NC} ${BOLD_YELLOW}${PROGRAM_BINARY}${NC}
 
 ${YELLOW}Options:${NC}
 ${GREEN}    -h, --help          ${NC}Display this help message.
@@ -384,7 +385,7 @@ check_for_updates() {
     spinner &
     SPINNER_PID=$!
 
-    curl -s -o /tmp/${PROGRAM_BINARY} -L https://git.io/Jfv1u
+    curl -s -o /tmp/${PROGRAM_BINARY} -L ${PROGRAM_RAW_URL}
     checksum1=$(md5sum ${PROGRAM_PATH} | awk '{ print $1 }')
     checksum2=$(md5sum /tmp/${PROGRAM_BINARY} | awk '{ print $1 }')
 
@@ -394,9 +395,9 @@ check_for_updates() {
 
     if [ ! "$checksum1" = "$checksum2" ]; then
         read -r -d '' UPGRADE_TEXT << EOF
-${RED}A new version of ${PROGRAM} is available! Run:${NC}
+    ${RED}A new version of ${PROGRAM} is available! Run:${NC}
 
-${SUDO}${PROGRAM_BINARY} upgrade ${PROGRAM_BINARY}\n
+    ${SUDO}${PROGRAM_BINARY} upgrade ${PROGRAM_BINARY}\n
 EOF
         echo -e "$UPGRADE_TEXT"
         exit 15
@@ -423,7 +424,7 @@ upgrade_dependency_manager() {
     spinner &
     SPINNER_PID=$!
 
-    curl -s -o ${PROGRAM_PATH} -L https://git.io/Jfv1u
+    curl -s -o ${PROGRAM_PATH} -L ${PROGRAM_RAW_URL}
 
     kill -9 $SPINNER_PID
     wait $SPINNER_PID 2>/dev/null
