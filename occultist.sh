@@ -8,6 +8,8 @@ TMP_FILE='.tmp.json'
 HOST='https://occultist.io'
 API_BASE="$HOST/api"
 PROGRAM='Occultist'
+PROGRAM_BINARY='occultist'
+BIN_PATH='/usr/local/bin/'
 LANGUAGE_NAME='the Chaos language'
 LANGUAGE_BINARY='chaos'
 LANGUAGE_REPO='https://github.com/chaos-lang/chaos.git'
@@ -148,7 +150,7 @@ uninstall_language() {
         exit 10
     fi
     UNINSTALLATION_FAIL=false
-    rm /usr/local/bin/$LANGUAGE_BINARY || UNINSTALLATION_FAIL=true
+    rm $BIN_PATH$LANGUAGE_BINARY || UNINSTALLATION_FAIL=true
     if [ $UNINSTALLATION_FAIL = true ]; then
         echo -e "${RED}Uninstallation is failed!${NC}"
         exit 12
@@ -312,7 +314,8 @@ ${YELLOW}Special commands:${NC}
     ${BOLD_RED}sudo${NC} occultist ${RED}remove${NC} ${BOLD_YELLOW}occultist${NC}
 
 ${YELLOW}Options:${NC}
-${GREEN}    -h, --help          ${NC}Display this help message
+${GREEN}    -h, --help          ${NC}Display this help message.
+${GREEN}    -d, --dont-update   ${NC}Disable check for updates.
 
 ${YELLOW}Command Descriptions:${NC}
 ${GREEN}    install             ${NC}Install a spell. Optionally specify version or branch.
@@ -325,6 +328,61 @@ EOF
     echo -e "$HELP_TEXT"
     exit 14
 }
+
+check_for_updates() {
+    printf "Checking for updates...\n"
+
+    spinner &
+    SPINNER_PID=$!
+
+    curl -s -o /tmp/${PROGRAM_BINARY} -L https://git.io/Jfv1u
+    checksum1=$(md5sum ${BIN_PATH}${PROGRAM_BINARY} | awk '{ print $1 }')
+    checksum2=$(md5sum /tmp/${PROGRAM_BINARY} | awk '{ print $1 }')
+
+    kill -9 $SPINNER_PID
+    wait $SPINNER_PID 2>/dev/null
+    printf "\b \n"
+
+    if [ ! "$checksum1" = "$checksum2" ]; then
+        read -r -d '' UPGRADE_TEXT << EOF
+${RED}A new version of ${PROGRAM} is available! Run:${NC}
+
+sudo ${PROGRAM_BINARY} upgrade ${PROGRAM_BINARY}\n
+EOF
+        echo -e "$UPGRADE_TEXT"
+        exit 15
+    else
+        echo -e "${GREEN}${PROGRAM} is up to date.${NC}"
+    fi
+}
+
+upgrade_dependency_manager() {
+    if [ "$EUID" -ne 0 ]; then
+        echo -e "${RED}To upgrade ${PROGRAM} you need to run this command as root!${NC}"
+        exit 16
+    fi
+
+    printf "Upgrading ${YELLOW}${PROGRAM_BINARY}${NC}...\n"
+
+    spinner &
+    SPINNER_PID=$!
+
+    curl -s -o ${BIN_PATH}${PROGRAM_BINARY} -L https://git.io/Jfv1u
+
+    kill -9 $SPINNER_PID
+    wait $SPINNER_PID 2>/dev/null
+    printf "\b"
+
+    echo -e "${GREEN}${PROGRAM} is successfully upgraded.${NC}"
+}
+
+if [ "$#" -lt 2 ] || [ ! $1 = "upgrade" ] || [ ! $2 = "occultist" ]; then
+    if [ "$1" = "-d" ] || [ "$1" = "--dont-update" ]; then
+        shift
+    else
+        check_for_updates
+    fi
+fi
 
 if [ "$#" -lt 1 ] || [ $1 = "-h" ] || [ $1 = "--help" ]; then
     print_help_text
@@ -486,6 +544,8 @@ elif [ $1 = "upgrade" ]; then
     else
         if [ $2 = $LANGUAGE_BINARY ]; then
             install_language $3
+        elif [ $2 = $PROGRAM_BINARY ]; then
+            upgrade_dependency_manager
         else
             SPELL_NAME=$2
             BRANCH=$(jq -r ".dependencies.${SPELL_NAME}" $JSON_FILE)
