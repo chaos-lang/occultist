@@ -20,8 +20,10 @@ DEPENDENCY_ROOT=$THIS_DIR
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
-BOLD_PURPLE='\033[1;35m'
 NC='\033[0m' # No Color
+BOLD_RED='\033[1;31m'
+BOLD_YELLOW='\033[1;33m'
+BOLD_PURPLE='\033[1;35m'
 BOLD_NC='\033[1m'
 UNDERLINED_NC='\033[4m'
 
@@ -287,6 +289,46 @@ install_spell() {
         rm $DEPENDENCY_ROOT/$TRACKER_FILE
     fi
 }
+
+print_help_text() {
+    read -r -d '' HELP_TEXT << EOF
+
+${YELLOW}Usage:${NC}
+    occultist [options] [commands]
+    occultist ${GREEN}install${NC} [spell]
+    occultist ${GREEN}install${NC} [spell] [version]
+    occultist ${GREEN}install${NC} [spell] [branch]
+    occultist ${GREEN}upgrade${NC} [spell]
+    occultist ${RED}remove${NC} [spell]
+    occultist init
+    occultist edit
+    occultist ${YELLOW}register${NC}
+
+${YELLOW}Special commands:${NC}
+    ${BOLD_RED}sudo${NC} occultist ${GREEN}install${NC} ${BOLD_PURPLE}chaos${NC}
+    ${BOLD_RED}sudo${NC} occultist ${GREEN}upgrade${NC} ${BOLD_PURPLE}chaos${NC}
+    ${BOLD_RED}sudo${NC} occultist ${RED}remove${NC} ${BOLD_PURPLE}chaos${NC}
+    ${BOLD_RED}sudo${NC} occultist ${GREEN}upgrade${NC} ${BOLD_YELLOW}occultist${NC}
+    ${BOLD_RED}sudo${NC} occultist ${RED}remove${NC} ${BOLD_YELLOW}occultist${NC}
+
+${YELLOW}Options:${NC}
+${GREEN}    -h, --help          ${NC}Display this help message
+
+${YELLOW}Command Descriptions:${NC}
+${GREEN}    install             ${NC}Install a spell. Optionally specify version or branch.
+${GREEN}    upgrade             ${NC}Upgrade the spell according to the version in occultist.json file.
+${GREEN}    remove              ${NC}Uninstall a spell.
+${GREEN}    init                ${NC}Generate a new occultist.json file automatically by answering the questions.
+${GREEN}    edit                ${NC}Edit an existing occultist.json file.
+${GREEN}    register            ${NC}Register a new spell to The Chaos Spell Index.
+EOF
+    echo -e "$HELP_TEXT"
+    exit 14
+}
+
+if [ "$#" -lt 1 ] || [ $1 = "-h" ] || [ $1 = "--help" ]; then
+    print_help_text
+fi
 
 # Create or edit occultist.json
 if [ $1 = "init" ] || [ $1 = "edit" ] || [ $1 = "create" ]; then
