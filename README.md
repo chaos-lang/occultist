@@ -20,7 +20,7 @@ each Chaos spells within its own `spells/` directory.
 [Git](https://git-scm.com/), [Bash](https://www.gnu.org/software/bash/) and [jq](https://stedolan.github.io/jq/)
 required to be installed on your system to be able to use the `occultist` commands.
 
-On Linux and macOS to install `jq` run: `make requirements`
+On Linux and macOS `occultist` will install all the requirements automatically.
 
 On Windows, use [Git Bash](https://gitforwindows.org/) and install `jq` with [Chocolatey](https://chocolatey.org/): `choco install jq`
 
@@ -32,7 +32,7 @@ sudo curl -o /usr/local/bin/occultist \
 sudo chmod +x /usr/local/bin/occultist
 ```
 
-or clone this repository and run: `make install`
+or clone this repository and run: `make`
 
 &nbsp;
 

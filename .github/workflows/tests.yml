@@ -42,7 +42,6 @@ jobs:
       run: |
         apt update
         apt install -y make
-        make requirements
       if: matrix.target == 'ubuntu' || matrix.target == 'debian'
 
     - name: Install dependencies (centos)
@@ -68,7 +67,6 @@ jobs:
 
     - name: Install the Occultist
       run: |
-        ./requirements.sh
         make install
 
     - name: Install the Chaos Language
@@ -135,7 +133,6 @@ jobs:
         mv /usr/local/bin/gcc-8 /usr/local/bin/gcc
         git clone https://github.com/chaos-lang/chaos.git
         cd chaos/
-        make requirements
         cd ..
 
     - name: Install the Occultist

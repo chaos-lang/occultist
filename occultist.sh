@@ -408,6 +408,87 @@ EOF
     fi
 }
 
+install_requirements() {
+    if [[ "$OSTYPE" == "linux"* ]]; then
+        if [ "$EUID" -ne 0 ]; then
+            echo -e "${RED}There are missing requirements for ${PROGRAM}!${NC}"
+            echo -e "${RED}To install the requirements you need to run this command as root!${NC}"
+            exit 17
+        fi
+
+        printf "Installing requirements...\n"
+
+        spinner &
+        SPINNER_PID=$!
+
+        {
+            APT_CMD=$(which apt)
+            APT_GET_CMD=$(which apt-get)
+            YUM_CMD=$(which yum)
+            DNF_CMD=$(which dnf)
+            PACMAN_CMD=$(which pacman)
+            PKG_CMD=$(which pkg)
+            APK_CMD=$(which apk)
+
+            REQUIREMENTS='git jq curl'
+
+            if [[ ! -z $APT_CMD ]]; then
+                apt update && \
+                apt install -y $REQUIREMENTS
+            elif [[ ! -z $APT_GET_CMD ]]; then
+                apt-get update && \
+                apt-get install -y $REQUIREMENTS
+            elif [[ ! -z $YUM_CMD ]]; then
+                yum install -y $REQUIREMENTS
+            elif [[ ! -z $DNF_CMD ]]; then
+                dnf install -y $REQUIREMENTS
+            elif [[ ! -z $PACMAN_CMD ]]; then
+                pacman -Syu --noconfirm && \
+                pacman -S --noconfirm $REQUIREMENTS
+            elif [[ ! -z $APK_CMD ]]; then
+                apk update && \
+                apk add $REQUIREMENTS
+            else
+                echo "Error: Automatic detection of default package manager is failed!"
+                exit 1;
+            fi
+        } &> /dev/null
+
+        kill -9 $SPINNER_PID
+        wait $SPINNER_PID 2>/dev/null
+        printf "\b"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        printf "Installing requirements...\n"
+
+        spinner &
+        SPINNER_PID=$!
+
+        {
+            brew update
+            brew install git jq md5sha1sum curl
+        } &> /dev/null
+
+        kill -9 $SPINNER_PID
+        wait $SPINNER_PID 2>/dev/null
+        printf "\b"
+    fi
+}
+
+check_requirements() {
+    which git &>/dev/null
+    CHECK_GIT=$?
+    which jq &>/dev/null
+    CHECK_JQ=$?
+    which md5sum &>/dev/null
+    CHECK_MD5SUM=$?
+    which curl &>/dev/null
+    CHECK_CURL=$?
+
+    if [ ! $CHECK_GIT -eq 0 ] || [ ! $CHECK_JQ -eq 0 ] || [ ! $CHECK_MD5SUM -eq 0 ] || [ ! $CHECK_CURL -eq 0 ]; then
+        install_requirements
+    fi
+}
+
 upgrade_dependency_manager() {
     if [ ! "$PLATFORM" = "MinGw" ]; then
         if [ "$EUID" -ne 0 ]; then
@@ -463,6 +544,7 @@ if [ "$#" -lt 1 ] || [ $1 = "-h" ] || [ $1 = "--help" ]; then
 fi
 
 if [ "$#" -lt 2 ] || [ ! $1 = "upgrade" ] || [ ! $2 = "$PROGRAM_BINARY" ]; then
+    check_requirements
     if [ "$1" = "-n" ] || [ "$1" = "--no-update" ]; then
         shift
     else
