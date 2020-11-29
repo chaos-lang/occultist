@@ -168,7 +168,7 @@ install_language() {
         git clone --depth=1 --branch $BRANCH $LANGUAGE_REPO /tmp/$LANGUAGE_BINARY && \
         cd /tmp/$LANGUAGE_BINARY/ && \
         if [ "$PLATFORM" = "Mac" ]; then
-            sudo -u $SUDO_USER make_c requirements
+            sudo -u $SUDO_USER make requirements
             source ~/.bash_profile
         else
             make_c requirements
