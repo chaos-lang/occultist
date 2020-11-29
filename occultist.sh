@@ -157,7 +157,8 @@ install_language() {
     SPINNER_PID=$!
 
     INSTALLATION_FAIL=false
-    OUT_BUFFER=$(mktemp)
+    OUT_BUFFER=$(mktemp -t occultist-XXXXXXXXXX)
+    LANGUAGE_CLONE_DIR=$(mktemp -d -t occultist-XXXXXXXXXX)
 
     {
         if [ -z $VERSION ]; then
@@ -165,8 +166,8 @@ install_language() {
         else
             BRANCH=$VERSION
         fi
-        git clone --depth=1 --branch $BRANCH $LANGUAGE_REPO /tmp/$LANGUAGE_BINARY && \
-        cd /tmp/$LANGUAGE_BINARY/ && \
+        git clone --depth=1 --branch $BRANCH $LANGUAGE_REPO $LANGUAGE_CLONE_DIR && \
+        cd $LANGUAGE_CLONE_DIR && \
         if [ "$PLATFORM" = "Mac" ]; then
             sudo -u $SUDO_USER make requirements
             source ~/.bash_profile
@@ -176,7 +177,7 @@ install_language() {
         make_c && \
         make_c install || INSTALLATION_FAIL=true
         cd $THIS_DIR
-        rm -rf /tmp/$LANGUAGE_BINARY/
+        rm -rf $LANGUAGE_CLONE_DIR
     } &> $OUT_BUFFER
 
     kill -9 $SPINNER_PID
@@ -256,7 +257,7 @@ install_spell() {
     BUILD_FAIL=false
 
     if [ $STATUS_CODE -eq 200 ]; then
-        OUT_BUFFER=$(mktemp)
+        OUT_BUFFER=$(mktemp -t occultist-XXXXXXXXXX)
 
         {
             SPELL_REPO=$(echo ${RESPONSE} | jq -r '.repo')
@@ -514,7 +515,7 @@ upgrade_dependency_manager() {
 
     printf "Upgrading ${YELLOW}${PROGRAM_BINARY}${NC}...\n"
 
-    TMP_DOWNLOAD_PATH=$(mktemp)
+    TMP_DOWNLOAD_PATH=$(mktemp -t occultist-XXXXXXXXXX)
 
     spinner &
     SPINNER_PID=$!
@@ -526,8 +527,8 @@ upgrade_dependency_manager() {
     printf "\b"
 
     echo -e "${GREEN}${PROGRAM} is successfully upgraded.${NC}"
+    chmod u=rwx,g=rx,o=rx ${TMP_DOWNLOAD_PATH}
     mv ${TMP_DOWNLOAD_PATH} ${PROGRAM_PATH}
-    chmod +rx ${PROGRAM_PATH}
 }
 
 remove_dependency_manager() {

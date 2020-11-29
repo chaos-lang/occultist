@@ -71,7 +71,7 @@ jobs:
 
     - name: Install the Chaos Language
       run: |
-        occultist -n install chaos
+        occultist -n install chaos master
         chaos --version
 
     - name: Install a spell
@@ -138,12 +138,12 @@ jobs:
     - name: Install the Occultist
       run: |
         source ~/.bash_profile
-        make install
+        sudo make install
 
     - name: Install the Chaos Language
       run: |
         source ~/.bash_profile
-        sudo occultist -n install chaos
+        sudo occultist -n install chaos master
         sudo rm occultist.json occultist-lock.json
         chaos --version
 
@@ -185,7 +185,7 @@ jobs:
       run: |
         source ~/.bash_profile
         sudo occultist -n upgrade occultist
-        make install
+        sudo make install
 
     - name: Remove a spell
       run: |
