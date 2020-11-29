@@ -514,16 +514,20 @@ upgrade_dependency_manager() {
 
     printf "Upgrading ${YELLOW}${PROGRAM_BINARY}${NC}...\n"
 
+    TMP_DOWNLOAD_PATH=$(mktemp)
+
     spinner &
     SPINNER_PID=$!
 
-    curl -s -o ${PROGRAM_PATH} -L ${PROGRAM_RAW_URL}
+    curl -s -o ${TMP_DOWNLOAD_PATH} -L ${PROGRAM_RAW_URL}
 
     kill -9 $SPINNER_PID
     wait $SPINNER_PID 2>/dev/null
     printf "\b"
 
     echo -e "${GREEN}${PROGRAM} is successfully upgraded.${NC}"
+    mv ${TMP_DOWNLOAD_PATH} ${PROGRAM_PATH}
+    chmod +rx ${PROGRAM_PATH}
 }
 
 remove_dependency_manager() {
