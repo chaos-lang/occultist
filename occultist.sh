@@ -157,6 +157,7 @@ install_language() {
     SPINNER_PID=$!
 
     INSTALLATION_FAIL=false
+    OUT_BUFFER=$(mktemp)
 
     {
         if [ -z $VERSION ]; then
@@ -171,13 +172,14 @@ install_language() {
         make_c install || INSTALLATION_FAIL=true
         cd $THIS_DIR
         rm -rf /tmp/$LANGUAGE_BINARY/
-    } &> /dev/null
+    } &> $OUT_BUFFER
 
     kill -9 $SPINNER_PID
     wait $SPINNER_PID 2>/dev/null
     printf "\b"
 
     if [ $INSTALLATION_FAIL = true ]; then
+        cat $OUT_BUFFER
         echo -e "${RED}Installation is failed!${NC}"
         exit 11
     fi
@@ -249,6 +251,8 @@ install_spell() {
     BUILD_FAIL=false
 
     if [ $STATUS_CODE -eq 200 ]; then
+        OUT_BUFFER=$(mktemp)
+
         {
             SPELL_REPO=$(echo ${RESPONSE} | jq -r '.repo')
 
@@ -304,7 +308,7 @@ install_spell() {
                 fi
                 cat $LOCK_FILE | jq -r ".dependencies += {\"${SPELL_NAME}\": \"${BRANCH}\"}" > $TMP_FILE && mv $TMP_FILE $LOCK_FILE
             fi
-        } &> /dev/null
+        } &> $OUT_BUFFER
 
         kill -9 $SPINNER_PID
         wait $SPINNER_PID 2>/dev/null
@@ -315,6 +319,7 @@ install_spell() {
             exit 3
         elif [ $BUILD_FAIL = true ]; then
             rm -rf $SPELLS_DIR_NAME/$SPELL_NAME
+            cat $OUT_BUFFER
             echo -e "${RED}Installation of ${YELLOW}${SPELL_NAME}${NC}:${YELLOW}${BRANCH}${RED} is failed: Build failure!${NC}"
             exit 4
         fi

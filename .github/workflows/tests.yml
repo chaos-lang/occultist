@@ -81,7 +81,7 @@ jobs:
 
     - name: Install a spell (specific version)
       run: |
-        occultist -n install template 1.0.0
+        occultist -n install template 1.1.0
         cat occultist.json
 
     - name: Install a spell (semantic versioning)
@@ -156,7 +156,7 @@ jobs:
     - name: Install a spell (specific version)
       run: |
         source ~/.bash_profile
-        occultist -n install template 1.0.0
+        occultist -n install template 1.1.0
         cat occultist.json
 
     - name: Install a spell (semantic versioning)
