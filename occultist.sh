@@ -158,7 +158,6 @@ install_language() {
 
     INSTALLATION_FAIL=false
     OUT_BUFFER=$(mktemp -t occultist-XXXXXXXXXX)
-    LANGUAGE_CLONE_DIR=$(mktemp -d -t occultist-XXXXXXXXXX)
 
     {
         if [ -z $VERSION ]; then
@@ -166,8 +165,8 @@ install_language() {
         else
             BRANCH=$VERSION
         fi
-        git clone --depth=1 --branch $BRANCH $LANGUAGE_REPO $LANGUAGE_CLONE_DIR && \
-        cd $LANGUAGE_CLONE_DIR && \
+        git clone --depth=1 --branch $BRANCH $LANGUAGE_REPO /tmp/$LANGUAGE_BINARY && \
+        cd /tmp/$LANGUAGE_BINARY/ && \
         if [ "$PLATFORM" = "Mac" ]; then
             sudo -u $SUDO_USER make requirements
             source ~/.bash_profile
@@ -177,7 +176,7 @@ install_language() {
         make_c && \
         make_c install || INSTALLATION_FAIL=true
         cd $THIS_DIR
-        rm -rf $LANGUAGE_CLONE_DIR
+        rm -rf /tmp/$LANGUAGE_BINARY/
     } &> $OUT_BUFFER
 
     kill -9 $SPINNER_PID
