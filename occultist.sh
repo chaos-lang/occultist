@@ -673,29 +673,27 @@ elif [ $1 = "register" ]; then
 
 # Install spells
 elif [ $1 = "install" ]; then
-    if [ "$#" -lt 2 ] || [ ! $2 = "$LANGUAGE_BINARY" ]; then
-        if [ ! -f $JSON_FILE ]; then
-            echo -e "{\n}" > $JSON_FILE
-        fi
-        {
-            if cat $JSON_FILE | jq -e 'has("dependencies")'; then
-                :
-            else
-                cat $JSON_FILE | jq -r '. += {"dependencies": {}}' > $TMP_FILE && mv $TMP_FILE $JSON_FILE
-            fi
-
-            LOCK=true
-            if [ ! -f $LOCK_FILE ]; then
-                echo -e "{\n}" > $LOCK_FILE
-                LOCK=false
-            fi
-            if cat $LOCK_FILE | jq -e 'has("dependencies")'; then
-                :
-            else
-                cat $LOCK_FILE | jq -r '. += {"dependencies": {}}' > $TMP_FILE && mv $TMP_FILE $LOCK_FILE
-            fi
-        } &> /dev/null
+    if [ ! -f $JSON_FILE ]; then
+        echo -e "{\n}" > $JSON_FILE
     fi
+    {
+        if cat $JSON_FILE | jq -e 'has("dependencies")'; then
+            :
+        else
+            cat $JSON_FILE | jq -r '. += {"dependencies": {}}' > $TMP_FILE && mv $TMP_FILE $JSON_FILE
+        fi
+
+        LOCK=true
+        if [ ! -f $LOCK_FILE ]; then
+            echo -e "{\n}" > $LOCK_FILE
+            LOCK=false
+        fi
+        if cat $LOCK_FILE | jq -e 'has("dependencies")'; then
+            :
+        else
+            cat $LOCK_FILE | jq -r '. += {"dependencies": {}}' > $TMP_FILE && mv $TMP_FILE $LOCK_FILE
+        fi
+    } &> /dev/null
 
     # Install all the dependencies
     if [ -z $2 ] || [ $2 = "$PROGRAM_BINARY" ]; then
