@@ -11,7 +11,6 @@ PROGRAM='Occultist'
 PROGRAM_BINARY='occultist'
 PROGRAM_PATH=$(which occultist)
 PROGRAM_RAW_URL='https://raw.githubusercontent.com/chaos-lang/occultist/master/occultist.sh'
-BIN_PATH='/usr/local/bin/'
 LANGUAGE_NAME='the Chaos language'
 LANGUAGE_NAME_SHORT='Chaos'
 LANGUAGE_BINARY='chaos'
@@ -102,11 +101,12 @@ mingw_is_admin() {
 }
 
 get_latest_tag_or_default_branch() {
-    local BRANCH=$(git ls-remote --tags --refs ${1} | tail -n1 | sed 's/.*\///')
+    local BRANCH
+    BRANCH=$(git ls-remote --tags --refs ${1} | tail -n1 | sed 's/.*\///')
     if [ -z $BRANCH ]; then
         git init &> /dev/null
-        local BRANCH=$(git remote show ${1} | grep "HEAD branch" | cut -d ":" -f 2)
-        local BRANCH="${BRANCH:1}"
+        BRANCH=$(git remote show ${1} | grep "HEAD branch" | cut -d ":" -f 2)
+        BRANCH="${BRANCH:1}"
     fi
     echo $BRANCH
 }
@@ -126,7 +126,7 @@ install_language() {
             exit 10
         fi
     else
-        if [ ! $(mingw_is_admin) = "admin" ]; then
+        if [ ! "$(mingw_is_admin)" = "admin" ]; then
             echo -e "${RED}To install ${LANGUAGE_NAME} you need to run as administrator!${NC}"
             exit 10
         fi
@@ -201,7 +201,7 @@ uninstall_language() {
             exit 10
         fi
     else
-        if [ ! $(mingw_is_admin) = "admin" ]; then
+        if [ ! "$(mingw_is_admin)" = "admin" ]; then
             echo -e "${RED}To uninstall ${LANGUAGE_NAME} you need to run as administrator!${NC}"
             exit 10
         fi
@@ -438,7 +438,6 @@ install_requirements() {
             YUM_CMD=$(which yum)
             DNF_CMD=$(which dnf)
             PACMAN_CMD=$(which pacman)
-            PKG_CMD=$(which pkg)
             APK_CMD=$(which apk)
 
             REQUIREMENTS='git jq curl'
@@ -507,7 +506,7 @@ upgrade_dependency_manager() {
             exit 16
         fi
     else
-        if [ ! $(mingw_is_admin) = "admin" ]; then
+        if [ ! "$(mingw_is_admin)" = "admin" ]; then
             echo -e "${RED}To remove ${PROGRAM} you need to run as administrator!${NC}"
             exit 10
         fi
@@ -538,14 +537,14 @@ remove_dependency_manager() {
             exit 16
         fi
     else
-        if [ ! $(mingw_is_admin) = "admin" ]; then
+        if [ ! "$(mingw_is_admin)" = "admin" ]; then
             echo -e "${RED}To upgrade ${PROGRAM} you need to run as administrator!${NC}"
             exit 10
         fi
     fi
 
     REMOVE_FAIL=false
-    rm $PROGRAM_PATH || REMOVE=true
+    rm $PROGRAM_PATH || REMOVE_FAIL=true
     if [ $REMOVE_FAIL = true ]; then
         echo -e "${RED}Failed to remove ${PROGRAM}!${NC}"
         exit 17
@@ -632,7 +631,6 @@ elif [ $1 = "register" ]; then
     SPELL_NAME=$(jq -r '.name' $JSON_FILE)
     SPELL_VERSION=$(jq -r '.version' $JSON_FILE)
     SPELL_DESCRIPTION=$(jq -r '.description' $JSON_FILE)
-    SPELL_TAGS=$(jq -r '.tags' $JSON_FILE)
     SPELL_TAGS_READABLE=$(jq -r '.tags | reduce .[1:][] as $i ("\(.[0])"; . + ", \($i)" )' $JSON_FILE)
     SPELL_TYPE=$(jq -r '.type' $JSON_FILE)
     SPELL_LICENSE=$(jq -r '.license' $JSON_FILE)
