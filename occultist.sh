@@ -545,7 +545,7 @@ remove_dependency_manager() {
     fi
 
     REMOVE_FAIL=false
-    rm $PROGRAM_PATH || REMOVE=true
+    rm $PROGRAM_PATH || REMOVE_FAIL=true
     if [ $REMOVE_FAIL = true ]; then
         echo -e "${RED}Failed to remove ${PROGRAM}!${NC}"
         exit 17
