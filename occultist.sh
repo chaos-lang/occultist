@@ -102,11 +102,11 @@ mingw_is_admin() {
 
 get_latest_tag_or_default_branch() {
     local BRANCH
-    $BRANCH=$(git ls-remote --tags --refs ${1} | tail -n1 | sed 's/.*\///')
+    BRANCH=$(git ls-remote --tags --refs ${1} | tail -n1 | sed 's/.*\///')
     if [ -z $BRANCH ]; then
         git init &> /dev/null
-        $BRANCH=$(git remote show ${1} | grep "HEAD branch" | cut -d ":" -f 2)
-        $BRANCH="${BRANCH:1}"
+        BRANCH=$(git remote show ${1} | grep "HEAD branch" | cut -d ":" -f 2)
+        BRANCH="${BRANCH:1}"
     fi
     echo $BRANCH
 }
