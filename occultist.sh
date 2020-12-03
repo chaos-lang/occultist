@@ -11,7 +11,6 @@ PROGRAM='Occultist'
 PROGRAM_BINARY='occultist'
 PROGRAM_PATH=$(which occultist)
 PROGRAM_RAW_URL='https://raw.githubusercontent.com/chaos-lang/occultist/master/occultist.sh'
-BIN_PATH='/usr/local/bin/'
 LANGUAGE_NAME='the Chaos language'
 LANGUAGE_NAME_SHORT='Chaos'
 LANGUAGE_BINARY='chaos'
