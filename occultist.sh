@@ -126,7 +126,7 @@ install_language() {
             exit 10
         fi
     else
-        if [ ! $(mingw_is_admin) = "admin" ]; then
+        if [ ! "$(mingw_is_admin)" = "admin" ]; then
             echo -e "${RED}To install ${LANGUAGE_NAME} you need to run as administrator!${NC}"
             exit 10
         fi
@@ -201,7 +201,7 @@ uninstall_language() {
             exit 10
         fi
     else
-        if [ ! $(mingw_is_admin) = "admin" ]; then
+        if [ ! "$(mingw_is_admin)" = "admin" ]; then
             echo -e "${RED}To uninstall ${LANGUAGE_NAME} you need to run as administrator!${NC}"
             exit 10
         fi
@@ -507,7 +507,7 @@ upgrade_dependency_manager() {
             exit 16
         fi
     else
-        if [ ! $(mingw_is_admin) = "admin" ]; then
+        if [ ! "$(mingw_is_admin)" = "admin" ]; then
             echo -e "${RED}To remove ${PROGRAM} you need to run as administrator!${NC}"
             exit 10
         fi
@@ -538,7 +538,7 @@ remove_dependency_manager() {
             exit 16
         fi
     else
-        if [ ! $(mingw_is_admin) = "admin" ]; then
+        if [ ! "$(mingw_is_admin)" = "admin" ]; then
             echo -e "${RED}To upgrade ${PROGRAM} you need to run as administrator!${NC}"
             exit 10
         fi
