@@ -438,7 +438,6 @@ install_requirements() {
             YUM_CMD=$(which yum)
             DNF_CMD=$(which dnf)
             PACMAN_CMD=$(which pacman)
-            PKG_CMD=$(which pkg)
             APK_CMD=$(which apk)
 
             REQUIREMENTS='git jq curl'
@@ -632,7 +631,6 @@ elif [ $1 = "register" ]; then
     SPELL_NAME=$(jq -r '.name' $JSON_FILE)
     SPELL_VERSION=$(jq -r '.version' $JSON_FILE)
     SPELL_DESCRIPTION=$(jq -r '.description' $JSON_FILE)
-    SPELL_TAGS=$(jq -r '.tags' $JSON_FILE)
     SPELL_TAGS_READABLE=$(jq -r '.tags | reduce .[1:][] as $i ("\(.[0])"; . + ", \($i)" )' $JSON_FILE)
     SPELL_TYPE=$(jq -r '.type' $JSON_FILE)
     SPELL_LICENSE=$(jq -r '.license' $JSON_FILE)
