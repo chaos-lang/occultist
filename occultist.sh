@@ -20,6 +20,9 @@ DESCRIPTION="Dependency manager for $LANGUAGE_NAME"
 SPELLS_DIR_NAME='spells'
 THIS_DIR=$(pwd)
 DEPENDENCY_ROOT=$THIS_DIR
+COPYRIGHT_NOTICE='Copyright (C) 2019-2021 Chaos Language Development Authority <info@chaos-lang.org>'
+LICENSE='GNU General Public License v3.0'
+LICENSE_URL='https://raw.githubusercontent.com/chaos-lang/occultist/master/LICENSE'
 
 # Terminal colors
 RED='\033[0;31m'
@@ -47,7 +50,11 @@ else
     SUDO=''
 fi
 
-clear
+if [ "$#" -lt 1 ] || [ $1 = "-l" ] || [ $1 = "--license" ]; then
+    wget -q -O- $LICENSE_URL | less
+    exit 0
+fi
+
 printf "${YELLOW}%s${NC} - %s - ${YELLOW}%s${NC}\n" "$PROGRAM" "$DESCRIPTION" "$HOST"
 # Program icon ANSI colors
 cat << "EOF"
@@ -82,6 +89,9 @@ cat << "EOF"
 [38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;234m,[39m[38;5;241mi[39m[38;5;242m1[39m[38;5;242mi[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242mi[39m[38;5;102m;[39m[38;5;59m,[39m[38;5;16m.[39m[38;5;16m.[39m[38;5;59m,[39m[38;5;102m;[39m[38;5;242mi[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242m1[39m[38;5;242mi[39m[38;5;242m1[39m[38;5;241mi[39m[38;5;234m,[39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m
 [38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;237m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;243m.[39m[38;5;242m.[39m[38;5;59m [39m[38;5;59m [39m[38;5;242m.[39m[38;5;243m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;242m.[39m[38;5;237m.[39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m[38;5;16m [39m
 EOF
+
+echo -e "${BOLD_PURPLE}${COPYRIGHT_NOTICE}${NC}"
+echo -e "License: ${BOLD_PURPLE}${LICENSE}${NC}\n"
 
 spinner() {
     i=1
@@ -377,6 +387,7 @@ ${YELLOW}Special commands:${NC}
 
 ${YELLOW}Options:${NC}
 ${GREEN}    -h, --help          ${NC}Display this help message.
+${GREEN}    -l, --license       ${NC}Display the license.
 ${GREEN}    -n, --no-update     ${NC}Disable check for updates.
 
 ${YELLOW}Command Descriptions:${NC}
@@ -388,7 +399,7 @@ ${GREEN}    edit                ${NC}Edit an existing ${JSON_FILE} file.
 ${GREEN}    register            ${NC}Register a new spell to The ${LANGUAGE_NAME_SHORT} Spell Index.
 EOF
     echo -e "$HELP_TEXT"
-    exit 14
+    exit 0
 }
 
 check_for_updates() {
